@@ -409,14 +409,25 @@ export default function CasinoScreen() {
               </View>
 
               <Pressable
-                disabled={closed || spinningRef.current}
+                disabled={closed || spinningRef.current || state.coins < state.settings.slotSpinCost}
                 onPress={spin}
-                style={[styles.lever, (closed || spinningRef.current) && { opacity: 0.5 }]}
+                style={[
+                  styles.lever,
+                  (closed || spinningRef.current || state.coins < state.settings.slotSpinCost) && {
+                    opacity: 0.5,
+                  },
+                ]}
                 testID="spin-slot-button"
               >
                 <View style={styles.leverInner}>
                   <Text style={styles.leverText}>
-                    {spinningRef.current ? "GIRANDO..." : closed ? "CERRADO" : "¡TIRA LA PALANCA!"}
+                    {spinningRef.current
+                      ? "GIRANDO..."
+                      : closed
+                        ? "CERRADO"
+                        : state.coins < state.settings.slotSpinCost
+                          ? "FICHAS INSUFICIENTES"
+                          : "¡TIRA LA PALANCA!"}
                   </Text>
                 </View>
               </Pressable>

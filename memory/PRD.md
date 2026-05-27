@@ -109,12 +109,33 @@
 GameState con `coins`, `streak`, `lastStudyDate`, `casinoClosedUntil`, `stats`, `topics[]`, `rewards[]`, `settings`. Soft-merge con defaults al hidratar para soportar actualizaciones futuras.
 
 ## Out-of-scope (futuras iteraciones)
-- Audio: jazz vintage, slot mechanical sounds, brass bells (placeholder de royalty-free queda pendiente)
+- Audio: música ambient de jazz (loop largo) — no incluida en MVP, ya están todos los SFX vintage
 - Notificaciones locales (no requerido en MVP)
 - Eventos diarios (Lucky Hour, Coin Rush…)
-- Reward boxes / multi-game casino
 - Animaciones Lottie de mascota rubber-hose
 - Migración a deployment Android (APK) — depende de build de usuario
+
+## Iteración 2 — Audio + Cajas + Animaciones
+
+### Audio vintage ✅
+- `expo-audio` integrado con preload y volume per-call
+- 10 SFX generados con ffmpeg: coin, bell, lever, spinning, jackpot, fail, win, click, tick, box_open
+- Hook `useSounds()` respeta `soundsEnabled` y `soundsVolume` del store
+- Wiring completo: Estudio (lever/win/fail/jackpot), Casino slot (lever/spinning/tick/jackpot/win/fail), Ruleta (lever/spinning/bell/win), Premios (coin/bell/fail), navegación (click)
+- Ajustes: toggle on/off + 5 chips de volumen (20–100%)
+
+### Reward Boxes ✅
+- 3 tiers en la pestaña Casino: 📦 Bronce (15🪙), 🎁 Plata (40🪙), 🏆 Oro (100🪙)
+- Tabla de pagos ponderada por rareza (común → legendario): de 5🪙 a 1500🪙
+- Animación de apertura: suspenso wobble + reveal modal con sunburst rays para legendarios
+- Costos editables en Ajustes (`bronzeBoxCost`, `silverBoxCost`, `goldBoxCost`)
+
+### Animaciones más adictivas ✅
+- `MarqueeLights`: bombillas chase Vegas-style alrededor del Hero card de Home y del cabinet de tragamonedas
+- `CoinShower`: lluvia de monedas/confetti con física variada en jackpots y cajas legendarias
+- `SunburstRays`: rayos rotatorios oro/rojo detrás del modal de jackpot
+- Box wobble + apertura con escalado y rotación
+- Sonidos sincronizados con cada interacción para feedback dopaminérgico
 
 ## Estado actual
 MVP completo, ejecutándose en Expo (Metro), Spanish UI, sin backend, offline-first. Pendiente: validación end-to-end con `testing_agent`.
