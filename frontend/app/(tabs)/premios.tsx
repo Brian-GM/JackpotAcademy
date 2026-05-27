@@ -20,6 +20,7 @@ import { PaperBackground } from "@/src/components/PaperBackground";
 import { SignTitle } from "@/src/components/SignTitle";
 import { VintageButton } from "@/src/components/VintageButton";
 import { VintageCard } from "@/src/components/VintageCard";
+import { useSounds } from "@/src/hooks/use-sounds";
 import { useGameStore } from "@/src/store/game-store";
 import { Rarity, RARITY_ORDER, Reward } from "@/src/store/types";
 import { cartoonShadow, colors, fonts, inkBorder, radii, rarityColor, rarityLabel } from "@/src/theme";
@@ -58,6 +59,7 @@ function defaultReward(): Reward {
 
 export default function PremiosScreen() {
   const { state, redeemReward, upsertReward, deleteReward } = useGameStore();
+  const { play } = useSounds();
   const [editing, setEditing] = useState<Reward | null>(null);
   const [, force] = useState(0);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
@@ -71,6 +73,8 @@ export default function PremiosScreen() {
     const ok = redeemReward(r.id);
     if (ok) {
       setFeedback({ ok: true, msg: `Disfruta: ${r.name}` });
+      play("coin");
+      setTimeout(() => play("bell", { volume: 0.5 }), 200);
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       } catch {
@@ -87,6 +91,7 @@ export default function PremiosScreen() {
         }
       }
       setFeedback({ ok: false, msg: reason });
+      play("fail", { volume: 0.4 });
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       } catch {

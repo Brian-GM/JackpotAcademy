@@ -52,6 +52,9 @@ const ECONOMY_FIELDS: FieldConfig[] = [
   { key: "maxPauses", label: "Pausas máximas", help: "Antes de fallar", min: 0 },
   { key: "highRiskMultiplier", label: "Multiplicador alto riesgo", help: "Ganancias × N si completas", min: 1 },
   { key: "appBlurFailSec", label: "Salir de app (seg)", help: "Tolerancia antes de fallar", min: 0 },
+  { key: "bronzeBoxCost", label: "Costo Caja de Bronce", help: "Hasta 150 fichas", min: 1 },
+  { key: "silverBoxCost", label: "Costo Caja de Plata", help: "Hasta 500 fichas", min: 1 },
+  { key: "goldBoxCost", label: "Costo Caja de Oro", help: "Hasta 1500 fichas", min: 1 },
 ];
 
 export default function AjustesScreen() {
@@ -70,6 +73,58 @@ export default function AjustesScreen() {
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <SignTitle title="AJUSTES DEL CASINO" subtitle="Edita las reglas" />
+
+          {/* Audio */}
+          <VintageCard style={styles.section}>
+            <Text style={styles.sectionTitle}>🔊 Audio del casino</Text>
+            <View style={styles.audioRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.fieldLabel}>Sonidos activados</Text>
+                <Text style={styles.fieldHelp}>Campanas, monedas, palanca y jackpot</Text>
+              </View>
+              <Pressable
+                onPress={() =>
+                  updateSettings({ soundsEnabled: !state.settings.soundsEnabled })
+                }
+                style={[styles.bigToggle, state.settings.soundsEnabled && styles.bigToggleOn]}
+                testID="toggle-sounds"
+              >
+                <View
+                  style={[
+                    styles.bigToggleKnob,
+                    state.settings.soundsEnabled && styles.bigToggleKnobOn,
+                  ]}
+                />
+              </Pressable>
+            </View>
+            <View style={styles.volumeRow}>
+              <Text style={styles.fieldLabel}>Volumen</Text>
+              <View style={styles.volumeBtns}>
+                {[0.2, 0.4, 0.6, 0.8, 1].map((v) => (
+                  <Pressable
+                    key={v}
+                    onPress={() => updateSettings({ soundsVolume: v })}
+                    style={[
+                      styles.volChip,
+                      Math.abs(state.settings.soundsVolume - v) < 0.05 && styles.volChipActive,
+                    ]}
+                    testID={`vol-${Math.round(v * 100)}`}
+                  >
+                    <Text
+                      style={[
+                        styles.volChipText,
+                        Math.abs(state.settings.soundsVolume - v) < 0.05 && {
+                          color: colors.paperHighlight,
+                        },
+                      ]}
+                    >
+                      {Math.round(v * 100)}%
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </VintageCard>
 
           {/* Economy */}
           <VintageCard style={styles.section}>
@@ -364,4 +419,41 @@ const styles = StyleSheet.create({
   },
   confirmCard: { padding: 22, minWidth: 280 },
   topicModal: { padding: 18, minWidth: 300 },
+  audioRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(44,30,22,0.15)",
+  },
+  bigToggle: {
+    width: 60,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.paperPrimary,
+    ...inkBorder(2),
+    justifyContent: "center",
+    padding: 3,
+  },
+  bigToggleOn: { backgroundColor: colors.successGreen },
+  bigToggleKnob: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: colors.paperHighlight,
+    ...inkBorder(1),
+  },
+  bigToggleKnobOn: { alignSelf: "flex-end" },
+  volumeRow: { marginTop: 10 },
+  volumeBtns: { flexDirection: "row", gap: 6, marginTop: 8, flexWrap: "wrap" },
+  volChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    ...inkBorder(2),
+    borderRadius: radii.pill,
+    backgroundColor: colors.paperHighlight,
+  },
+  volChipActive: { backgroundColor: colors.vintageRed },
+  volChipText: { fontFamily: fonts.subheading, color: colors.ink, fontSize: 12, letterSpacing: 1 },
 });

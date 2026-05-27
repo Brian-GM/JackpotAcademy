@@ -21,6 +21,7 @@ import { PaperBackground } from "@/src/components/PaperBackground";
 import { SignTitle } from "@/src/components/SignTitle";
 import { VintageButton } from "@/src/components/VintageButton";
 import { VintageCard } from "@/src/components/VintageCard";
+import { useSounds } from "@/src/hooks/use-sounds";
 import { useGameStore } from "@/src/store/game-store";
 import { cartoonShadow, colors, fonts, inkBorder, radii } from "@/src/theme";
 
@@ -34,6 +35,7 @@ function formatMMSS(sec: number) {
 
 export default function EstudioScreen() {
   const { state, completeStudySession, failStudySession, spendCoins } = useGameStore();
+  const { play } = useSounds();
 
   const [duration, setDuration] = useState(state.settings.pomodoroDuration);
   const [remaining, setRemaining] = useState(state.settings.pomodoroDuration * 60);
@@ -82,13 +84,14 @@ export default function EstudioScreen() {
       failStudySession({ highRiskBet: betValue });
       setSessionState("failed");
       setResultModal({ kind: "fail", reason });
+      play("fail");
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } catch {
         // best-effort
       }
     },
-    [bet, cleanupTimers, failStudySession, highRisk],
+    [bet, cleanupTimers, failStudySession, highRisk, play],
   );
 
   const handleComplete = useCallback(() => {
@@ -102,12 +105,14 @@ export default function EstudioScreen() {
     });
     setSessionState("finished");
     setResultModal({ kind: "win", coinsEarned, newStreak });
+    play("jackpot");
+    setTimeout(() => play("coin"), 400);
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
       // best-effort
     }
-  }, [bet, cleanupTimers, completeStudySession, duration, highRisk, pauses]);
+  }, [bet, cleanupTimers, completeStudySession, duration, highRisk, pauses, play]);
 
   // tick
   useEffect(() => {
@@ -160,6 +165,7 @@ export default function EstudioScreen() {
     setRemaining(duration * 60);
     startTimestampRef.current = Date.now();
     setSessionState("running");
+    play("lever");
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch {

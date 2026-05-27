@@ -1,0 +1,42 @@
+{
+  "summary": "Frontend-only retest of NEW features (audio panel, reward boxes, marquee lights, sunburst+coin shower, mode switcher, box cost settings & persistence). All 8 acceptance bullets PASS with 0 console errors. Home shows STUDY CASINO sign with marquee chase lights above and below the EMPEZAR ESTUDIO button. Casino tab has a working mode switcher (Tragamonedas default / Cajas) — slot cabinet renders marquee lights at top and bottom; Cajas mode shows 3 wobbling box cards (bronce 15, plata 40, oro 100 default) all correctly disabled with 'INSUFICIENTE' at 0 coins. Ajustes places the 'Audio del casino' section ABOVE 'Economía y reglas' with a working toggle (green↔off color flip) and 5 volume chips that highlight in vintageRed when tapped. The 3 new box-cost settings exist (setting-bronzeBoxCost/silverBoxCost/goldBoxCost) and persist across reload — setting bronze=25 then reloading shows 25 both in Ajustes and on the Bronce box card. Slot spin at 0 coins is enabled-looking but silently no-ops (no crash). Home→Estudio→Start session→ABANDONAR shows CASINO CERRADO modal correctly. No JavaScript errors thrown anywhere during the entire flow (audio gracefully degrades on web as expected).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "casino.tsx spin-slot-button",
+        "issue": "At 0 coins the lever button still renders enabled with label '¡TIRA LA PALANCA!' and only becomes 'CERRADO'/dimmed when casino is in closed state. Tapping silently no-ops via spendCoins returning false — no crash and meets the loose criteria, but UX would be clearer if the button also visually disabled when coins<spinCost.",
+        "testID": "spin-slot-button",
+        "priority": "LOW"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": [
+      {
+        "screen": "casino.tsx top header",
+        "issues": ["Title 'CASINO DE LA SUERTE' is truncated to 'CASINO DE LA SUE...' on a 390px wide viewport because the mode switcher takes up >40% of the top row width. Consider stacking the mode switcher below the title or shortening the SignTitle on this screen."]
+      },
+      {
+        "screen": "ajustes.tsx top header",
+        "issues": ["'AJUSTES DEL CASINO' title is truncated to 'AJUSTES DEL CASI...' on 390px wide viewport. Consider reducing SignTitle font size or shortening copy."]
+      }
+    ],
+    "react_native_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Optional: visually disable spin-slot-button when state.coins < state.settings.slotSpinCost (mirror the box-card 'INSUFICIENTE' pattern) — current behavior is silent no-op which is acceptable but less obvious.",
+    "Optional polish: SignTitle on Casino & Ajustes truncates on 390px — consider responsive font sizing or shorter titles."
+  ],
+  "critical_code_review_comments": [
+    "casino.tsx is 977 lines — consider splitting BoxesSection, BoxOpeningModal, BoxResultModal, SlotResultModal, and Reel into their own files under /src/components/casino/ to keep files <700 lines.",
+    "Reel translateY uses (rotate.value % 60) - 30 which is fine but rotate is named misleadingly (no rotation applied); rename to spinOffset for clarity.",
+    "Acceptance criteria for box costs is met; persistence via AsyncStorage in game-store works correctly across reload."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "n/a (skipped per request)", "frontend": "100% (8/8 acceptance bullets pass)"},
+  "seed_data_creation": "None — app is offline AsyncStorage; default settings (15/40/100 box costs) used. One test modified bronzeBoxCost to 25 to validate persistence (still that value if you reload now).",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "All NEW features (audio panel, mode switcher, 3 reward box tiers, box-cost settings persistence, marquee lights on Home hero and slot cabinet, CASINO CERRADO modal after abandon) verified working with 0 console errors on web preview. testIDs verified: home-title, start-study-button, mode-slot, mode-boxes, box-bronce/plata/oro, open-bronce/plata/oro, toggle-sounds, vol-20/40/60/80/100, setting-bronzeBoxCost/silverBoxCost/goldBoxCost, spin-slot-button, start-session-button, fail-study-button (this is the ABANDONAR button — review request called it 'ABANDONAR' loosely). Audio is best-effort on web (autoplay restrictions) and degrades silently — not tested for actual sound output per instructions."
+}

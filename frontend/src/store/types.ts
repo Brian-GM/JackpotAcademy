@@ -41,6 +41,13 @@ export type Settings = {
   maxPauses: number;
   highRiskMultiplier: number;
   appBlurFailSec: number; // seconds before backgrounding fails session
+  // Reward boxes
+  bronzeBoxCost: number;
+  silverBoxCost: number;
+  goldBoxCost: number;
+  // Audio
+  soundsEnabled: boolean;
+  soundsVolume: number; // 0..1
 };
 
 export type Stats = {
@@ -78,6 +85,11 @@ export const DEFAULT_SETTINGS: Settings = {
   maxPauses: 3,
   highRiskMultiplier: 3,
   appBlurFailSec: 30,
+  bronzeBoxCost: 15,
+  silverBoxCost: 40,
+  goldBoxCost: 100,
+  soundsEnabled: true,
+  soundsVolume: 0.7,
 };
 
 export const DEFAULT_TOPICS: Topic[] = [

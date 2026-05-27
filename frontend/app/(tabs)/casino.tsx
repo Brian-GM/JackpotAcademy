@@ -1,8 +1,7 @@
-// CASINO — vintage slot machine with weighted reels, near-miss psychology, and jackpot reveals.
+// CASINO — slot machine + reward boxes with vintage lights and dopamine animations.
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -23,10 +22,14 @@ import Animated, {
 
 import { CasinoClosedBanner } from "@/src/components/CasinoClosedBanner";
 import { CoinBadge } from "@/src/components/CoinBadge";
+import { CoinShower } from "@/src/components/CoinShower";
+import { MarqueeLights } from "@/src/components/MarqueeLights";
 import { PaperBackground } from "@/src/components/PaperBackground";
 import { SignTitle } from "@/src/components/SignTitle";
+import { SunburstRays } from "@/src/components/SunburstRays";
 import { VintageButton } from "@/src/components/VintageButton";
 import { VintageCard } from "@/src/components/VintageCard";
+import { useSounds } from "@/src/hooks/use-sounds";
 import { useGameStore } from "@/src/store/game-store";
 import { cartoonShadow, colors, fonts, inkBorder, radii } from "@/src/theme";
 
@@ -54,12 +57,69 @@ function pickWeighted(): SymbolDef {
 }
 
 function nearMiss(symbol: SymbolDef): SymbolDef {
-  // Return adjacent symbol by rarity for that "almost!" feel
   const idx = SYMBOLS.findIndex((s) => s.symbol === symbol.symbol);
   return SYMBOLS[Math.max(0, idx - 1)];
 }
 
-type Reel = { current: string; spinning: boolean };
+// Reward box payout table — boxes pay coins with weighted rarity distribution.
+type BoxTier = "bronce" | "plata" | "oro";
+const BOX_TIERS: Record<
+  BoxTier,
+  {
+    name: string;
+    emoji: string;
+    color: string;
+    payouts: { coins: number; weight: number; rarity: string; emoji: string; label: string }[];
+  }
+> = {
+  bronce: {
+    name: "Caja de Bronce",
+    emoji: "📦",
+    color: "#8C6239",
+    payouts: [
+      { coins: 5, weight: 40, rarity: "comun", emoji: "🪙", label: "Cinco fichas" },
+      { coins: 12, weight: 30, rarity: "comun", emoji: "💰", label: "Bolsa pequeña" },
+      { coins: 25, weight: 18, rarity: "raro", emoji: "💎", label: "Diamante menor" },
+      { coins: 50, weight: 10, rarity: "epico", emoji: "🏆", label: "Trofeo de plata" },
+      { coins: 150, weight: 2, rarity: "legendario", emoji: "👑", label: "¡Corona dorada!" },
+    ],
+  },
+  plata: {
+    name: "Caja de Plata",
+    emoji: "🎁",
+    color: "#9C9CB3",
+    payouts: [
+      { coins: 20, weight: 35, rarity: "comun", emoji: "💰", label: "Bolsa de monedas" },
+      { coins: 45, weight: 30, rarity: "raro", emoji: "💎", label: "Gema brillante" },
+      { coins: 80, weight: 20, rarity: "epico", emoji: "🏆", label: "Trofeo de oro" },
+      { coins: 200, weight: 10, rarity: "epico", emoji: "💍", label: "Anillo del jefe" },
+      { coins: 500, weight: 5, rarity: "legendario", emoji: "👑", label: "¡Tesoro real!" },
+    ],
+  },
+  oro: {
+    name: "Caja de Oro",
+    emoji: "🏆",
+    color: "#D4AF37",
+    payouts: [
+      { coins: 60, weight: 35, rarity: "raro", emoji: "💎", label: "Diamante real" },
+      { coins: 120, weight: 30, rarity: "epico", emoji: "🏆", label: "Trofeo dorado" },
+      { coins: 250, weight: 20, rarity: "epico", emoji: "💍", label: "Anillo legendario" },
+      { coins: 500, weight: 10, rarity: "legendario", emoji: "👑", label: "Corona imperial" },
+      { coins: 1500, weight: 5, rarity: "legendario", emoji: "🌟", label: "¡EL GRAN PREMIO!" },
+    ],
+  },
+};
+
+function pickBoxPayout(tier: BoxTier) {
+  const t = BOX_TIERS[tier];
+  const total = t.payouts.reduce((s, p) => s + p.weight, 0);
+  let r = Math.random() * total;
+  for (const p of t.payouts) {
+    r -= p.weight;
+    if (r <= 0) return p;
+  }
+  return t.payouts[0];
+}
 
 function Reel({ symbol, spinning }: { symbol: string; spinning: boolean }) {
   const [displayed, setDisplayed] = useState(symbol);
@@ -67,7 +127,6 @@ function Reel({ symbol, spinning }: { symbol: string; spinning: boolean }) {
 
   useEffect(() => {
     if (spinning) {
-      // cycle random symbols while spinning
       const id = setInterval(() => {
         setDisplayed(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)].symbol);
       }, 80);
@@ -94,9 +153,13 @@ function Reel({ symbol, spinning }: { symbol: string; spinning: boolean }) {
   );
 }
 
+type Mode = "slot" | "boxes";
+
 export default function CasinoScreen() {
   const { state, spendCoins, addCoins, recordSpin, isCasinoClosed, casinoClosedRemainingSec } =
     useGameStore();
+  const { play } = useSounds();
+  const [mode, setMode] = useState<Mode>("slot");
   const [reels, setReels] = useState<string[]>([
     SYMBOLS[0].symbol,
     SYMBOLS[0].symbol,
@@ -110,10 +173,17 @@ export default function CasinoScreen() {
     name?: string;
   } | null>(null);
   const [showResult, setShowResult] = useState(false);
+  const [showShower, setShowShower] = useState(false);
   const [, force] = useState(0);
   const spinningRef = useRef(false);
 
-  // re-render every second to update banner timer
+  // Reward box state
+  const [openingBox, setOpeningBox] = useState<BoxTier | null>(null);
+  const [boxResult, setBoxResult] = useState<{
+    tier: BoxTier;
+    payout: ReturnType<typeof pickBoxPayout>;
+  } | null>(null);
+
   useEffect(() => {
     const id = setInterval(() => force((n) => n + 1), 1000);
     return () => clearInterval(id);
@@ -123,19 +193,15 @@ export default function CasinoScreen() {
   const remaining = casinoClosedRemainingSec();
 
   const computeOutcome = useCallback(() => {
-    // Decide if jackpot occurs at all
     const jackpotProb = state.settings.jackpotProbability;
     const isJackpot = Math.random() < jackpotProb;
     if (isJackpot) {
       const j = SYMBOLS[SYMBOLS.length - 1];
       return { reels: [j.symbol, j.symbol, j.symbol], match: j, count: 3 };
     }
-
-    // Roll for normal/triple match (rare for big symbols)
     const isTriple = Math.random() < 0.05;
     if (isTriple) {
       const winner = pickWeighted();
-      // avoid jackpot from this path
       const safeWinner = winner.symbol === "7️⃣" ? SYMBOLS[5] : winner;
       return {
         reels: [safeWinner.symbol, safeWinner.symbol, safeWinner.symbol],
@@ -143,20 +209,12 @@ export default function CasinoScreen() {
         count: 3,
       };
     }
-
-    // Near-miss occasionally for tension (two matching with 3rd close)
     const nearMissRoll = Math.random() < 0.18;
     if (nearMissRoll) {
       const winner = pickWeighted();
       const adj = nearMiss(winner);
-      return {
-        reels: [winner.symbol, winner.symbol, adj.symbol],
-        match: winner,
-        count: 2,
-      };
+      return { reels: [winner.symbol, winner.symbol, adj.symbol], match: winner, count: 2 };
     }
-
-    // Standard: 3 random independent symbols
     const r1 = pickWeighted().symbol;
     const r2 = pickWeighted().symbol;
     const r3 = pickWeighted().symbol;
@@ -176,20 +234,22 @@ export default function CasinoScreen() {
     const cost = state.settings.slotSpinCost;
     if (!spendCoins(cost)) return;
     spinningRef.current = true;
+    play("lever");
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     } catch {
-      // best-effort
+      // ignore
     }
+    setTimeout(() => play("spinning", { volume: 0.6 }), 200);
     const outcome = computeOutcome();
     setSpinning([true, true, true]);
     setReels(outcome.reels);
 
-    // stop reels staggered
     const stopAt = [1200, 1700, 2300];
     stopAt.forEach((ms, i) => {
       setTimeout(() => {
         setSpinning((s) => s.map((v, idx) => (idx === i ? false : v)));
+        play("tick");
         try {
           Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         } catch {
@@ -200,102 +260,434 @@ export default function CasinoScreen() {
 
     setTimeout(() => {
       spinningRef.current = false;
-      // payout
       let win = 0;
       const m = outcome.match;
       const isJackpot = outcome.count === 3 && m.symbol === "7️⃣";
-      if (outcome.count === 3) {
-        win = m.payout;
-      } else if (outcome.count === 2) {
-        win = 3;
-      }
+      if (outcome.count === 3) win = m.payout;
+      else if (outcome.count === 2) win = 3;
       if (win > 0) addCoins(win);
       recordSpin(isJackpot);
       setLastResult({ win, jackpot: isJackpot, matches: outcome.count, name: m.name });
       setShowResult(true);
+      if (isJackpot) {
+        play("jackpot");
+        setShowShower(true);
+        setTimeout(() => setShowShower(false), 2200);
+        try {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        } catch {
+          // ignore
+        }
+      } else if (win > 0) {
+        play("win");
+        play("coin");
+      } else {
+        play("fail", { volume: 0.5 });
+      }
+    }, 2500);
+  }, [
+    addCoins,
+    closed,
+    computeOutcome,
+    play,
+    recordSpin,
+    spendCoins,
+    state.settings.slotSpinCost,
+  ]);
+
+  const openBox = useCallback(
+    (tier: BoxTier) => {
+      if (closed) return;
+      const cost =
+        tier === "bronce"
+          ? state.settings.bronzeBoxCost
+          : tier === "plata"
+            ? state.settings.silverBoxCost
+            : state.settings.goldBoxCost;
+      if (!spendCoins(cost)) return;
+      play("lever");
       try {
-        if (isJackpot) Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
       } catch {
         // ignore
       }
-    }, 2500);
-  }, [addCoins, closed, computeOutcome, recordSpin, spendCoins, state.settings.slotSpinCost]);
+      setOpeningBox(tier);
+      // suspense delay then reveal
+      setTimeout(() => {
+        const payout = pickBoxPayout(tier);
+        addCoins(payout.coins);
+        recordSpin(payout.rarity === "legendario");
+        setBoxResult({ tier, payout });
+        setOpeningBox(null);
+        play("box_open");
+        if (payout.rarity === "legendario") {
+          play("jackpot");
+          setShowShower(true);
+          setTimeout(() => setShowShower(false), 2400);
+        } else {
+          play("coin");
+          play("bell", { volume: 0.5 });
+        }
+      }, 1800);
+    },
+    [
+      addCoins,
+      closed,
+      play,
+      recordSpin,
+      spendCoins,
+      state.settings.bronzeBoxCost,
+      state.settings.goldBoxCost,
+      state.settings.silverBoxCost,
+    ],
+  );
 
   return (
     <PaperBackground>
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <SignTitle title="CASINO DE LA SUERTE" subtitle="Tragamonedas" />
+          <SignTitle title="CASINO DE LA SUERTE" subtitle="¡Apuesta tus fichas!" />
 
           <View style={styles.topRow}>
             <CoinBadge amount={state.coins} size={28} />
-            <View style={styles.costPill}>
-              <Text style={styles.costPillText}>
-                Costo por giro: {state.settings.slotSpinCost} 🪙
-              </Text>
+            <View style={styles.modeRow}>
+              <Pressable
+                onPress={() => {
+                  play("click");
+                  setMode("slot");
+                }}
+                style={[styles.modeBtn, mode === "slot" && styles.modeBtnActive]}
+                testID="mode-slot"
+              >
+                <Text style={[styles.modeText, mode === "slot" && styles.modeTextActive]}>
+                  🎰 Tragamonedas
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  play("click");
+                  setMode("boxes");
+                }}
+                style={[styles.modeBtn, mode === "boxes" && styles.modeBtnActive]}
+                testID="mode-boxes"
+              >
+                <Text style={[styles.modeText, mode === "boxes" && styles.modeTextActive]}>
+                  📦 Cajas
+                </Text>
+              </Pressable>
             </View>
           </View>
 
           {closed && <CasinoClosedBanner remainingSec={remaining} />}
 
-          {/* Slot machine cabinet */}
-          <View style={styles.cabinet}>
-            <View style={styles.cabinetTop}>
-              <Text style={styles.cabinetTitle}>★ JACKPOT ★</Text>
-            </View>
-            <View style={styles.reels}>
-              {reels.map((s, i) => (
-                <Reel key={i} symbol={s} spinning={spinning[i]} />
-              ))}
-            </View>
-            <View style={styles.cabinetBottom}>
-              <Text style={styles.payline}>━━━━━━━━━━━━━━━</Text>
-            </View>
-          </View>
-
-          {/* Spin lever / button */}
-          <Pressable
-            disabled={closed || spinningRef.current}
-            onPress={spin}
-            style={styles.lever}
-            testID="spin-slot-button"
-          >
-            <View style={styles.leverInner}>
-              <Text style={styles.leverText}>
-                {spinningRef.current ? "GIRANDO..." : closed ? "CERRADO" : "¡TIRA LA PALANCA!"}
-              </Text>
-            </View>
-          </Pressable>
-
-          {/* Payout table */}
-          <VintageCard style={styles.section}>
-            <Text style={styles.sectionTitle}>💰 Tabla de pagos</Text>
-            {SYMBOLS.map((s) => (
-              <View key={s.symbol} style={styles.payRow}>
-                <Text style={styles.paySymbol}>
-                  {s.symbol} {s.symbol} {s.symbol}
-                </Text>
-                <Text style={styles.payText}>
-                  {s.name} → {s.payout} 🪙
-                </Text>
+          {mode === "slot" ? (
+            <>
+              {/* Slot machine cabinet w/ marquee */}
+              <View style={styles.cabinet}>
+                <View style={styles.cabinetMarquee}>
+                  <MarqueeLights count={14} size={9} speed={1100} />
+                </View>
+                <View style={styles.cabinetTop}>
+                  <Text style={styles.cabinetTitle}>★ JACKPOT ★</Text>
+                </View>
+                <View style={styles.reels}>
+                  {reels.map((s, i) => (
+                    <Reel key={i} symbol={s} spinning={spinning[i]} />
+                  ))}
+                </View>
+                <View style={styles.cabinetBottom}>
+                  <Text style={styles.payline}>━━━━━━━━━━━━━━━</Text>
+                </View>
+                <View style={styles.cabinetMarqueeBottom}>
+                  <MarqueeLights count={14} size={9} speed={1100} />
+                </View>
               </View>
-            ))}
-            <Text style={styles.payNote}>2 iguales → 3 🪙 · Probabilidad jackpot ajustable</Text>
-          </VintageCard>
+
+              <View style={styles.costRow}>
+                <Text style={styles.costRowText}>Costo por giro</Text>
+                <Text style={styles.costRowValue}>{state.settings.slotSpinCost} 🪙</Text>
+              </View>
+
+              <Pressable
+                disabled={closed || spinningRef.current}
+                onPress={spin}
+                style={[styles.lever, (closed || spinningRef.current) && { opacity: 0.5 }]}
+                testID="spin-slot-button"
+              >
+                <View style={styles.leverInner}>
+                  <Text style={styles.leverText}>
+                    {spinningRef.current ? "GIRANDO..." : closed ? "CERRADO" : "¡TIRA LA PALANCA!"}
+                  </Text>
+                </View>
+              </Pressable>
+
+              {/* Payout table */}
+              <VintageCard style={styles.section}>
+                <Text style={styles.sectionTitle}>💰 Tabla de pagos</Text>
+                {SYMBOLS.map((s) => (
+                  <View key={s.symbol} style={styles.payRow}>
+                    <Text style={styles.paySymbol}>
+                      {s.symbol} {s.symbol} {s.symbol}
+                    </Text>
+                    <Text style={styles.payText}>
+                      {s.name} → {s.payout} 🪙
+                    </Text>
+                  </View>
+                ))}
+                <Text style={styles.payNote}>
+                  2 iguales → 3 🪙 · Probabilidad jackpot ajustable
+                </Text>
+              </VintageCard>
+            </>
+          ) : (
+            <BoxesSection
+              state={state}
+              closed={closed}
+              onOpen={openBox}
+            />
+          )}
         </ScrollView>
       </SafeAreaView>
 
-      <ResultModal
+      {/* Coin shower / confetti layer for jackpots */}
+      <CoinShower active={showShower} count={28} variant="coins" />
+
+      <SlotResultModal
         visible={showResult}
         result={lastResult}
-        onClose={() => setShowResult(false)}
+        onClose={() => {
+          play("click");
+          setShowResult(false);
+        }}
         spinCost={state.settings.slotSpinCost}
+      />
+
+      <BoxOpeningModal tier={openingBox} />
+      <BoxResultModal
+        result={boxResult}
+        onClose={() => {
+          play("click");
+          setBoxResult(null);
+        }}
       />
     </PaperBackground>
   );
 }
 
-function ResultModal({
+function BoxesSection({
+  state,
+  closed,
+  onOpen,
+}: {
+  state: ReturnType<typeof useGameStore>["state"];
+  closed: boolean;
+  onOpen: (tier: BoxTier) => void;
+}) {
+  const costs: Record<BoxTier, number> = {
+    bronce: state.settings.bronzeBoxCost,
+    plata: state.settings.silverBoxCost,
+    oro: state.settings.goldBoxCost,
+  };
+  return (
+    <>
+      <Text style={styles.boxesTagline}>
+        ✨ Abre cajas misteriosas y gana fichas con rarezas crecientes ✨
+      </Text>
+      {(Object.keys(BOX_TIERS) as BoxTier[]).map((tier) => {
+        const t = BOX_TIERS[tier];
+        const cost = costs[tier];
+        const canAfford = state.coins >= cost;
+        const max = t.payouts[t.payouts.length - 1].coins;
+        return (
+          <BoxCard
+            key={tier}
+            tier={tier}
+            name={t.name}
+            emoji={t.emoji}
+            color={t.color}
+            cost={cost}
+            maxCoins={max}
+            disabled={!canAfford || closed}
+            onOpen={() => onOpen(tier)}
+          />
+        );
+      })}
+    </>
+  );
+}
+
+function BoxCard({
+  tier,
+  name,
+  emoji,
+  color,
+  cost,
+  maxCoins,
+  disabled,
+  onOpen,
+}: {
+  tier: BoxTier;
+  name: string;
+  emoji: string;
+  color: string;
+  cost: number;
+  maxCoins: number;
+  disabled: boolean;
+  onOpen: () => void;
+}) {
+  const wobble = useSharedValue(0);
+
+  useEffect(() => {
+    wobble.value = withRepeat(
+      withSequence(
+        withTiming(-3, { duration: 700 }),
+        withTiming(3, { duration: 700 }),
+        withTiming(0, { duration: 300 }),
+        withTiming(0, { duration: 1500 }), // pause
+      ),
+      -1,
+      false,
+    );
+  }, [wobble]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${wobble.value}deg` }, { scale: 1 + Math.abs(wobble.value) * 0.005 }],
+  }));
+
+  return (
+    <VintageCard tint={colors.paperHighlight} style={styles.boxCard} testID={`box-${tier}`}>
+      <View style={styles.boxRow}>
+        <Animated.View style={[styles.boxIconWrap, { borderColor: color }, animStyle]}>
+          <Text style={styles.boxEmoji}>{emoji}</Text>
+        </Animated.View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.boxName}>{name}</Text>
+          <Text style={styles.boxRange}>Hasta {maxCoins} 🪙</Text>
+          <Text style={styles.boxCost}>Costo: {cost} 🪙</Text>
+        </View>
+      </View>
+      <VintageButton
+        label={disabled ? "INSUFICIENTE" : "ABRIR CAJA"}
+        variant="red"
+        disabled={disabled}
+        onPress={onOpen}
+        testID={`open-${tier}`}
+        style={{ marginTop: 10 }}
+      />
+    </VintageCard>
+  );
+}
+
+function BoxOpeningModal({ tier }: { tier: BoxTier | null }) {
+  const wobble = useSharedValue(0);
+  const scale = useSharedValue(1);
+
+  useEffect(() => {
+    if (!tier) return;
+    wobble.value = withRepeat(
+      withSequence(
+        withTiming(-15, { duration: 80 }),
+        withTiming(15, { duration: 80 }),
+      ),
+      -1,
+      true,
+    );
+    scale.value = withRepeat(
+      withSequence(
+        withTiming(1.15, { duration: 200 }),
+        withTiming(0.9, { duration: 200 }),
+      ),
+      -1,
+      true,
+    );
+  }, [tier, wobble, scale]);
+
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${wobble.value}deg` }, { scale: scale.value }],
+  }));
+
+  if (!tier) return null;
+  const t = BOX_TIERS[tier];
+
+  return (
+    <Modal visible={!!tier} transparent animationType="fade">
+      <View style={styles.modalBackdropDark}>
+        <Animated.Text style={[styles.boxOpeningEmoji, animStyle]}>{t.emoji}</Animated.Text>
+        <Text style={styles.boxOpeningText}>Abriendo...</Text>
+      </View>
+    </Modal>
+  );
+}
+
+function BoxResultModal({
+  result,
+  onClose,
+}: {
+  result: { tier: BoxTier; payout: ReturnType<typeof pickBoxPayout> } | null;
+  onClose: () => void;
+}) {
+  const scale = useSharedValue(0);
+
+  useEffect(() => {
+    if (result) {
+      scale.value = withSequence(
+        withSpring(1.3, { damping: 5, stiffness: 180 }),
+        withSpring(1, { damping: 7, stiffness: 200 }),
+      );
+    } else {
+      scale.value = 0;
+    }
+  }, [result, scale]);
+
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  if (!result) return null;
+  const isLegendary = result.payout.rarity === "legendario";
+  const bg = isLegendary ? colors.antiqueGold : colors.successGreen;
+
+  return (
+    <Modal visible={!!result} transparent animationType="fade">
+      <View style={styles.modalBackdrop}>
+        {isLegendary && (
+          <View style={styles.sunburstLayer} pointerEvents="none">
+            <SunburstRays size={500} rayCount={20} speed={5000} />
+          </View>
+        )}
+        <Animated.View style={animStyle}>
+          <VintageCard tint={bg} style={styles.modalCard}>
+            <Text style={styles.modalEmoji}>{result.payout.emoji}</Text>
+            <Text
+              style={[
+                styles.modalTitle,
+                { color: isLegendary ? colors.ink : colors.paperHighlight },
+              ]}
+            >
+              {result.payout.label}
+            </Text>
+            <Text
+              style={[
+                styles.modalBody,
+                { color: isLegendary ? colors.ink : colors.paperHighlight },
+              ]}
+              testID="box-result-coins"
+            >
+              +{result.payout.coins} 🪙
+            </Text>
+            <VintageButton
+              label="ABRIR OTRA"
+              variant={isLegendary ? "red" : "gold"}
+              onPress={onClose}
+              testID="close-box-result"
+              style={{ marginTop: 14, minWidth: 200 }}
+            />
+          </VintageCard>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+function SlotResultModal({
   visible,
   result,
   onClose,
@@ -319,9 +711,7 @@ function ResultModal({
     }
   }, [visible, scale]);
 
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-  }));
+  const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   if (!result) return null;
 
@@ -354,6 +744,11 @@ function ResultModal({
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.modalBackdrop}>
+        {isJackpot && (
+          <View style={styles.sunburstLayer} pointerEvents="none">
+            <SunburstRays size={500} rayCount={24} speed={4500} />
+          </View>
+        )}
         <Animated.View style={animStyle}>
           <VintageCard tint={bg} style={styles.modalCard}>
             <Text style={styles.modalEmoji}>{emoji}</Text>
@@ -396,14 +791,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 4,
   },
-  costPill: {
-    ...inkBorder(2),
-    backgroundColor: colors.cream,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: radii.pill,
-  },
-  costPillText: { fontFamily: fonts.body, fontSize: 13, color: colors.ink },
+  modeRow: { flexDirection: "row", gap: 4, ...inkBorder(2), borderRadius: radii.pill, overflow: "hidden", backgroundColor: colors.paperHighlight },
+  modeBtn: { paddingHorizontal: 10, paddingVertical: 6 },
+  modeBtnActive: { backgroundColor: colors.vintageRed },
+  modeText: { fontFamily: fonts.subheading, fontSize: 11, color: colors.ink, letterSpacing: 1 },
+  modeTextActive: { color: colors.paperHighlight },
   cabinet: {
     ...inkBorder(4),
     backgroundColor: colors.wornWoodDark,
@@ -411,6 +803,8 @@ const styles = StyleSheet.create({
     padding: 12,
     ...cartoonShadow(6),
   },
+  cabinetMarquee: { paddingVertical: 6, marginBottom: 4 },
+  cabinetMarqueeBottom: { paddingVertical: 6, marginTop: 4 },
   cabinetTop: {
     backgroundColor: colors.vintageRed,
     ...inkBorder(2),
@@ -448,6 +842,14 @@ const styles = StyleSheet.create({
   symbol: { fontSize: 70, lineHeight: 78 },
   cabinetBottom: { alignItems: "center", marginTop: 8 },
   payline: { color: colors.antiqueGold, fontFamily: fonts.body, letterSpacing: 1 },
+  costRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 10,
+  },
+  costRowText: { fontFamily: fonts.body, color: colors.inkSoft },
+  costRowValue: { fontFamily: fonts.numbers, color: colors.vintageRed, fontSize: 16 },
   lever: {
     ...inkBorder(4),
     backgroundColor: colors.antiqueGold,
@@ -488,12 +890,49 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 6,
   },
+  // Box styles
+  boxesTagline: {
+    fontFamily: fonts.subheading,
+    color: colors.vintageRed,
+    textAlign: "center",
+    fontSize: 13,
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  boxCard: { padding: 14 },
+  boxRow: { flexDirection: "row", gap: 14, alignItems: "center" },
+  boxIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: radii.md,
+    borderWidth: 4,
+    backgroundColor: colors.cream,
+    alignItems: "center",
+    justifyContent: "center",
+    ...cartoonShadow(3),
+  },
+  boxEmoji: { fontSize: 36 },
+  boxName: {
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    color: colors.ink,
+    letterSpacing: 1,
+  },
+  boxRange: { fontFamily: fonts.body, color: colors.inkSoft, fontSize: 12, marginTop: 2 },
+  boxCost: { fontFamily: fonts.numbers, color: colors.vintageRed, fontSize: 14, marginTop: 4 },
+  // Modals
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(44,30,22,0.7)",
+    backgroundColor: "rgba(44,30,22,0.78)",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
+  },
+  modalBackdropDark: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.92)",
+    alignItems: "center",
+    justifyContent: "center",
   },
   modalCard: {
     padding: 20,
@@ -516,7 +955,22 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textAlign: "center",
   },
+  sunburstLayer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  boxOpeningEmoji: {
+    fontSize: 130,
+  },
+  boxOpeningText: {
+    fontFamily: fonts.heading,
+    color: colors.antiqueGold,
+    fontSize: 22,
+    letterSpacing: 4,
+    marginTop: 24,
+    textShadowColor: colors.vintageRed,
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 0,
+  },
 });
-
-// Suppress unused-import warning for the Image we may use later.
-void Image;

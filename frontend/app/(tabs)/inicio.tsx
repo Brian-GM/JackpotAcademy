@@ -8,10 +8,12 @@ import { FontAwesome5 } from "@expo/vector-icons";
 
 import { CasinoClosedBanner } from "@/src/components/CasinoClosedBanner";
 import { CoinBadge } from "@/src/components/CoinBadge";
+import { MarqueeLights } from "@/src/components/MarqueeLights";
 import { PaperBackground } from "@/src/components/PaperBackground";
 import { SignTitle } from "@/src/components/SignTitle";
 import { VintageButton } from "@/src/components/VintageButton";
 import { VintageCard } from "@/src/components/VintageCard";
+import { useSounds } from "@/src/hooks/use-sounds";
 import { useGameStore } from "@/src/store/game-store";
 import { colors, fonts, inkBorder, radii } from "@/src/theme";
 
@@ -20,6 +22,7 @@ const ROULETTE = require("../../assets/images/roulette-wheel.png");
 export default function InicioScreen() {
   const router = useRouter();
   const { state, isCasinoClosed, casinoClosedRemainingSec } = useGameStore();
+  const { play } = useSounds();
   const [, force] = useState(0);
 
   // Re-render every second to update the closed-banner timer.
@@ -60,6 +63,9 @@ export default function InicioScreen() {
 
           {/* Main action: study */}
           <VintageCard tint={colors.cream} style={styles.heroCard}>
+            <View style={styles.heroLights}>
+              <MarqueeLights count={16} size={8} speed={1400} />
+            </View>
             <Text style={styles.heroEyebrow}>¡APUESTA TU TIEMPO!</Text>
             <Text style={styles.heroTitle}>¿Listo para ganar?</Text>
             <Text style={styles.heroBody}>
@@ -69,10 +75,16 @@ export default function InicioScreen() {
               label="EMPEZAR ESTUDIO"
               variant="red"
               size="lg"
-              onPress={() => router.push("/(tabs)/estudio")}
+              onPress={() => {
+                play("lever");
+                router.push("/(tabs)/estudio");
+              }}
               testID="start-study-button"
               style={styles.heroBtn}
             />
+            <View style={styles.heroLightsBottom}>
+              <MarqueeLights count={16} size={8} speed={1400} />
+            </View>
           </VintageCard>
 
           {/* Quick actions */}
@@ -85,7 +97,10 @@ export default function InicioScreen() {
                   label="Tragamonedas"
                   variant="gold"
                   size="sm"
-                  onPress={() => router.push("/(tabs)/casino")}
+                  onPress={() => {
+                    play("click");
+                    router.push("/(tabs)/casino");
+                  }}
                   testID="quick-spin-button"
                   style={{ marginTop: 6 }}
                 />
@@ -99,7 +114,10 @@ export default function InicioScreen() {
                   label="Girar"
                   variant="wood"
                   size="sm"
-                  onPress={() => router.push("/(tabs)/ruleta")}
+                  onPress={() => {
+                    play("click");
+                    router.push("/(tabs)/ruleta");
+                  }}
                   testID="quick-roulette-button"
                   style={{ marginTop: 6 }}
                 />
@@ -213,6 +231,16 @@ const styles = StyleSheet.create({
   heroCard: {
     padding: 18,
     alignItems: "center",
+  },
+  heroLights: {
+    width: "100%",
+    paddingVertical: 4,
+    marginBottom: 6,
+  },
+  heroLightsBottom: {
+    width: "100%",
+    paddingVertical: 4,
+    marginTop: 10,
   },
   heroEyebrow: {
     fontFamily: fonts.subheading,

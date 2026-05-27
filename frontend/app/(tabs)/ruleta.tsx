@@ -26,6 +26,7 @@ import { PaperBackground } from "@/src/components/PaperBackground";
 import { SignTitle } from "@/src/components/SignTitle";
 import { VintageButton } from "@/src/components/VintageButton";
 import { VintageCard } from "@/src/components/VintageCard";
+import { useSounds } from "@/src/hooks/use-sounds";
 import { useGameStore } from "@/src/store/game-store";
 import { cartoonShadow, colors, fonts, inkBorder, radii } from "@/src/theme";
 
@@ -40,6 +41,7 @@ export default function RuletaScreen() {
     isCasinoClosed,
     casinoClosedRemainingSec,
   } = useGameStore();
+  const { play } = useSounds();
 
   const rotation = useSharedValue(0);
   const [spinning, setSpinning] = useState(false);
@@ -68,6 +70,8 @@ export default function RuletaScreen() {
   const showResult = (name: string) => {
     setResult(name);
     setSpinning(false);
+    play("bell");
+    setTimeout(() => play("win"), 250);
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
@@ -100,6 +104,8 @@ export default function RuletaScreen() {
     setSpinning(true);
     setResult(null);
     lastResultRef.current = chosen.name;
+    play("lever");
+    setTimeout(() => play("spinning", { volume: 0.5 }), 200);
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     } catch {
