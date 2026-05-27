@@ -1,0 +1,36 @@
+{
+  "summary": "Frontend-only Playwright testing of Expo web preview for 'Study Casino' MVP. All 11 requested test items PASSED: boot to Inicio with vintage title, 6-tab navigation, balance/streak/quick actions, Pomodoro timer (25:00 default, duration chips 15/25/50/90 switch correctly, custom input, MODO ALTO RIESGO expands bet-input, EMPEZAR SESIÓN → PAUSAR/ABANDONAR, ABANDONAR shows 'CASINO CERRADO' modal, dismiss returns to idle), Casino cabinet with 3 cherry reels and disabled spin button when coins=0 (button shows 'CERRADO' due to closed banner), Ruleta with all 6 default topics and wheel image visible, Premios with all 7 default rewards + working CRUD ('+ Nuevo' opens edit modal, name+cost+save works, new reward 'Test reward' appears in list), Ajustes with reset-all-button and setting-pomodoroDuration field, and AsyncStorage persistence across page reload (pomodoroDuration=30 survived reload). No backend tested per request. Only issue: non-blocking React Native Web deprecation warnings in console (shadow*, textShadow*, pointerEvents prop, Image style.resizeMode).",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [],
+    "react_native_issues": [
+      {"component": "theme/cartoonShadow (used widely)", "issue": "'shadow*' style props are deprecated on React Native Web; use 'boxShadow'. Console warning fires on every screen. Reference: /app/frontend/src/theme.ts (cartoonShadow helper) used in inicio/casino/ruleta/estudio/premios/ajustes."},
+      {"component": "theme/text styles", "issue": "'textShadow*' style props are deprecated; use 'textShadow' shorthand. Reference: /app/frontend/app/(tabs)/estudio.tsx:457-460 (timer), casino.tsx:427-430 (cabinetTitle), ruleta.tsx:247-249 (pointerArrow)."},
+      {"component": "estudio.tsx gaugeShine", "issue": "props.pointerEvents is deprecated; use style.pointerEvents. Reference: /app/frontend/app/(tabs)/estudio.tsx:226 (<View ... pointerEvents=\"none\" />)."},
+      {"component": "Image resizeMode", "issue": "Image style.resizeMode is deprecated; use props.resizeMode. Reference: /app/frontend/app/(tabs)/inicio.tsx:257 (quickIcon) and /app/frontend/app/(tabs)/ruleta.tsx:259 (wheelImage)."}
+    ]
+  },
+  "test_report_links": [],
+  "action_items": [
+    "Migrate cartoonShadow helper in /app/frontend/src/theme.ts to use boxShadow (RN 0.76+/RN Web) instead of shadowColor/shadowOffset/shadowOpacity/shadowRadius to silence deprecation warnings.",
+    "Replace textShadowColor/textShadowOffset/textShadowRadius with the new textShadow shorthand in estudio.tsx (timer), casino.tsx (cabinetTitle), ruleta.tsx (pointerArrow).",
+    "In estudio.tsx (line 226), move pointerEvents=\"none\" from prop to style: style={[styles.gaugeShine, { pointerEvents: 'none' }]}.",
+    "In inicio.tsx (quickIcon) and ruleta.tsx (wheelImage), move resizeMode from StyleSheet to <Image resizeMode=\"contain\" /> prop."
+  ],
+  "critical_code_review_comments": [
+    "All interactive elements correctly use testID (verified via data-testid lookups).",
+    "All text is wrapped in <Text> components; no raw strings in <View>.",
+    "AsyncStorage persistence works correctly through reload (verified pomodoroDuration=30).",
+    "No backend present (local-only AsyncStorage app) – matches MVP spec.",
+    "spin-slot-button correctly disables when casino is closed (renders 'CERRADO' label) – verified after a failed study session triggered the cooldown banner."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (skipped)", "frontend": "100% (all 11 requested flows pass)"},
+  "seed_data_creation": "Created one custom reward 'Test reward' (cost=5) via the + Nuevo modal during testing; remains in AsyncStorage.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "All core MVP flows verified working on https://study-casino.preview.emergentagent.com at mobile viewport 390x844. Only deprecation warnings remain. Note: a previously-abandoned study session leaves the casino in a 30-min closed state in AsyncStorage; future testers may need to clear localStorage or wait for cooldown before re-testing spin flows. testIDs are all wired correctly.",
+  "rca_of_issue": "N/A – no failures."
+}
