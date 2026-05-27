@@ -30,16 +30,16 @@ const styles = StyleSheet.create({
   title: {
     fontFamily: fonts.heading,
     fontSize: 30,
-    color: colors.ink,
+    color: colors.antiqueGold,
     letterSpacing: 2,
-    textShadowColor: colors.antiqueGold,
+    textShadowColor: colors.vintageRedDark,
     textShadowOffset: { width: 2, height: 2 },
     textShadowRadius: 0,
   },
   subtitle: {
     fontFamily: fonts.subheading,
     fontSize: 14,
-    color: colors.inkSoft,
+    color: colors.cream,
     letterSpacing: 4,
     marginTop: 2,
     textTransform: "uppercase",
@@ -47,8 +47,8 @@ const styles = StyleSheet.create({
   divider: {
     width: "50%",
     height: 2,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.antiqueGold,
     marginTop: 8,
-    opacity: 0.4,
+    opacity: 0.6,
   },
 });

@@ -309,7 +309,7 @@ export default function AjustesScreen() {
                     {t.weight}
                   </Text>
                 </View>
-                <Pressable onPress={() => setEditingTopic(t)} style={styles.iconBtn}>
+                <Pressable onPress={() => setEditingTopic(t)} style={styles.iconBtn} testID={`edit-topic-${t.id}`}>
                   <FontAwesome5 name="pen" color={colors.ink} size={14} />
                 </Pressable>
               </View>

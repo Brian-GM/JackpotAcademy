@@ -1,29 +1,46 @@
-// Vintage 1930s casino theme tokens used across the app.
-// Ink outline used for borders / shadows. Sepia/cream for paper. Antique gold + vintage red for accents.
+// Vintage 1930s clown-casino theme tokens — dark Jackpot Academy palette.
 
 export const colors = {
-  paperPrimary: "#E6D5B8",
-  paperSecondary: "#F4EBD9",
-  paperHighlight: "#FCF8F2",
-  ink: "#2C1E16",
-  inkSoft: "#4A3424",
-  vintageRed: "#A62C2B",
-  vintageRedDark: "#7A1C1B",
-  antiqueGold: "#D4AF37",
-  antiqueGoldDark: "#A8852A",
-  mutedYellow: "#E8C37D",
-  wornWood: "#5C3A21",
-  wornWoodDark: "#3D2614",
+  // Backgrounds
+  bgDark: "#0E0A07",
+  bgDarker: "#070504",
+  bgPanel: "#1A130C",
+  bgPanelLight: "#241B11",
+  // Paper / cream
+  cream: "#EFE4C9",
+  paperHighlight: "#F5ECD2",
+  paperPrimary: "#E8D9B6",
+  paperSecondary: "#F1E3C8",
+  // Inks (text on light)
+  ink: "#1A1106",
+  inkSoft: "#4A382A",
+  // Brand accents
+  vintageRed: "#B8332E",
+  vintageRedDark: "#7E1E1A",
+  vintageGreen: "#4F6D3A",
+  vintageGreenDark: "#33491E",
+  vintagePurple: "#5C3D6E",
+  vintagePurpleDark: "#3B2548",
+  antiqueGold: "#C99A3C",
+  antiqueGoldDark: "#8F6D24",
   brass: "#B08D57",
   brassDark: "#76582C",
-  cream: "#F1E3C8",
-  // rarity hues
-  common: "#8C7A5C",
-  rare: "#3F6E8E",
-  epic: "#7A3C9A",
-  legendary: "#D4AF37",
-  successGreen: "#5B7A3A",
-  warningAmber: "#C77F2B",
+  mutedYellow: "#D9B569",
+  // Mascot palette
+  clownGreen: "#5A7C3E",
+  clownRed: "#B8332E",
+  clownPurple: "#5C3D6E",
+  clownFace: "#F4ECD8",
+  // Rarity hues (dark theme)
+  common: "#A0876B",
+  rare: "#4E7AA8",
+  epic: "#7A4DA0",
+  legendary: "#D4A93F",
+  successGreen: "#5F8C3A",
+  warningAmber: "#C8842B",
+  // Legacy aliases (keep existing components working)
+  wornWood: "#5C3A21",
+  wornWoodDark: "#3D2614",
 };
 
 export const fonts = {
@@ -48,13 +65,17 @@ export const spacing = {
   xl: 32,
 };
 
-// Hard cartoon shadow (no blur). Pop-out 2D look.
-export const cartoonShadow = (offset = 4, color = colors.ink) => ({
+export const cartoonShadow = (offset = 4, color = "#000000") => ({
   shadowColor: color,
   shadowOffset: { width: offset, height: offset },
   shadowOpacity: 1,
   shadowRadius: 0,
   elevation: 6,
+});
+
+export const goldBorder = (width = 2) => ({
+  borderWidth: width,
+  borderColor: colors.antiqueGold,
 });
 
 export const inkBorder = (width = 3) => ({

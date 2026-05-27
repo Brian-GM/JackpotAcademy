@@ -2,7 +2,7 @@ import { Tabs } from "expo-router";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 
-import { cartoonShadow, colors, fonts, inkBorder } from "@/src/theme";
+import { cartoonShadow, colors, fonts, goldBorder } from "@/src/theme";
 
 type TabIconProps = { name: string; color: string; focused: boolean };
 
@@ -18,10 +18,7 @@ function TabLabel({ label, focused }: { label: string; focused: boolean }) {
   return (
     <Text
       numberOfLines={1}
-      style={[
-        styles.label,
-        { color: focused ? colors.vintageRed : colors.inkSoft },
-      ]}
+      style={[styles.label, { color: focused ? colors.antiqueGold : colors.cream }]}
     >
       {label}
     </Text>
@@ -34,8 +31,8 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: colors.vintageRed,
-        tabBarInactiveTintColor: colors.inkSoft,
+        tabBarActiveTintColor: colors.antiqueGold,
+        tabBarInactiveTintColor: colors.cream,
         tabBarShowLabel: true,
       }}
     >
@@ -99,14 +96,13 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   tabBar: {
-    ...inkBorder(2),
-    backgroundColor: colors.paperSecondary,
+    backgroundColor: colors.bgDarker,
     height: 70,
     paddingTop: 6,
     paddingBottom: 8,
     ...cartoonShadow(0),
-    borderTopWidth: 3,
-    borderTopColor: colors.ink,
+    borderTopWidth: 2,
+    borderTopColor: colors.antiqueGold,
   },
   iconWrap: {
     width: 36,
@@ -116,9 +112,8 @@ const styles = StyleSheet.create({
     borderRadius: 18,
   },
   iconFocused: {
-    backgroundColor: colors.cream,
-    borderWidth: 2,
-    borderColor: colors.ink,
+    backgroundColor: colors.bgPanel,
+    ...goldBorder(2),
   },
   label: {
     fontFamily: fonts.subheading,

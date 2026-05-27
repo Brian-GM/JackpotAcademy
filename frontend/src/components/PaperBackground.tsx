@@ -1,4 +1,4 @@
-// Reusable worn paper background. Children render over a sepia ImageBackground.
+// Dark vintage background. Uses a deep brown/black with subtle paper grain overlay.
 
 import { ImageBackground, StyleSheet, View, ViewStyle } from "react-native";
 import { ReactNode } from "react";
@@ -10,33 +10,41 @@ const PAPER = require("../../assets/images/worn-paper.png");
 type Props = {
   children: ReactNode;
   style?: ViewStyle;
-  overlay?: boolean;
+  variant?: "dark" | "paper";
 };
 
-export function PaperBackground({ children, style, overlay = true }: Props) {
+export function PaperBackground({ children, style, variant = "dark" }: Props) {
+  if (variant === "paper") {
+    return (
+      <ImageBackground
+        source={PAPER}
+        resizeMode="cover"
+        style={[styles.bg, { backgroundColor: colors.paperPrimary }, style]}
+        imageStyle={styles.image}
+      >
+        {children}
+      </ImageBackground>
+    );
+  }
   return (
-    <ImageBackground
-      source={PAPER}
-      resizeMode="cover"
-      style={[styles.bg, style]}
-      imageStyle={styles.image}
-    >
-      {overlay && <View style={styles.overlay} pointerEvents="none" />}
+    <View style={[styles.bg, { backgroundColor: colors.bgDark }, style]}>
+      {/* subtle grain overlay using the paper texture, very faint */}
+      <ImageBackground
+        source={PAPER}
+        resizeMode="cover"
+        style={StyleSheet.absoluteFill}
+        imageStyle={{ opacity: 0.06 }}
+      />
       {children}
-    </ImageBackground>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   bg: {
     flex: 1,
-    backgroundColor: colors.paperPrimary,
   },
   image: {
     opacity: 0.85,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(230, 213, 184, 0.25)",
   },
 });

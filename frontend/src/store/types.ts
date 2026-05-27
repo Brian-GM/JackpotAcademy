@@ -82,11 +82,13 @@ export type Settings = {
   // Notifications
   notificationsEnabled: boolean;
   endSessionSound: boolean;
-  // App blocking (requires native APK build + Accessibility Service)
+  // App blocking
   appBlockerEnabled: boolean;
   blockedApps: BlockedApp[];
-  allowedApps: BlockedApp[]; // whitelist — when set, ONLY these apps allowed during study
-  blockerStrictMode: boolean; // true = whitelist mode, false = blacklist mode
+  allowedApps: BlockedApp[];
+  blockerStrictMode: boolean;
+  // Smart roulette
+  disabledCategories: string[]; // categories the user has toggled off
 };
 
 export type Stats = {
@@ -142,34 +144,41 @@ export const DEFAULT_SETTINGS: Settings = {
   ],
   allowedApps: [],
   blockerStrictMode: false,
+  disabledCategories: [],
 };
 
 export const DEFAULT_TOPICS: Topic[] = [
   {
     id: "t1",
     name: "Matemáticas",
-    weight: 1,
+    weight: 3,
     enabled: true,
     category: "Ciencias",
     difficulty: 3,
+    mastery: 1,
+    reviewCount: 0,
   },
-  { id: "t2", name: "Historia", weight: 1, enabled: true, category: "Humanidades", difficulty: 2 },
+  { id: "t2", name: "Historia", weight: 2, enabled: true, category: "Humanidades", difficulty: 2, mastery: 1, reviewCount: 0 },
   {
     id: "t3",
     name: "Ciencias Naturales",
-    weight: 1,
+    weight: 2,
     enabled: true,
     category: "Ciencias",
     difficulty: 2,
+    mastery: 1,
+    reviewCount: 0,
   },
-  { id: "t4", name: "Inglés", weight: 1, enabled: true, category: "Idiomas", difficulty: 2 },
+  { id: "t4", name: "Inglés", weight: 2, enabled: true, category: "Idiomas", difficulty: 2, mastery: 1, reviewCount: 0 },
   {
     id: "t5",
     name: "Programación",
-    weight: 1,
+    weight: 3,
     enabled: true,
     category: "Tecnología",
     difficulty: 3,
+    mastery: 1,
+    reviewCount: 0,
   },
   {
     id: "t6",
@@ -178,6 +187,8 @@ export const DEFAULT_TOPICS: Topic[] = [
     enabled: true,
     category: "Humanidades",
     difficulty: 1,
+    mastery: 2,
+    reviewCount: 0,
   },
 ];
 

@@ -115,7 +115,49 @@ GameState con `coins`, `streak`, `lastStudyDate`, `casinoClosedUntil`, `stats`, 
 - Animaciones Lottie de mascota rubber-hose
 - Migración a deployment Android (APK) — depende de build de usuario
 
-## Iteración 2 — Audio + Cajas + Animaciones
+## Iteración 3 — Economía rediseñada + Mascota + Notificaciones + Bloqueador nativo
+
+### Economía rediseñada ✅
+- Las **fichas se ganan ESTUDIANDO**, no en el casino: `minutos × coinsPerMinute × multiplicador_dificultad`
+- Cada **tema tiene dificultad** (🟢 Fácil ×1.0, 🟡 Medio ×1.5, 🔴 Difícil ×2.2)
+- El **tragamonedas y las cajas YA NO PAGAN FICHAS** — pagan **premios reales aleatorios** del catálogo
+- Mapeo símbolo → rareza: 🍒🍋→Común · 🔔🍀→Raro · ⭐💎→Épico · 7️⃣→Legendario
+- Cajas: distribución de rareza por tier (Bronce 1% legendario, Plata 5%, Oro 15%)
+- Solo "2 iguales" devuelve 2 fichas de consolación (mínimo para no farmear)
+- Premios tab: tabs "Ganados (N)" + "Catálogo". Inventory con stack badge `×N` cuando ganas el mismo premio múltiples veces
+- Selector de tema al inicio del Pomodoro con preview de ficha estimadas
+
+### Mascota animada "Mr. Brass" ✅
+- Componente `CasinoMascot.tsx` 100% hecho con Views (sin SVG ni assets externos)
+- Compuesto por: sombrero de copa con banda roja, cara de moneda de bronce, ojos animados, boca expresiva, mejillas, traje + corbatín, brazos goma-manguera con manos
+- Estados: `idle`, `cheer`, `sad`, `spin`, `wave`
+- Aparece en pantalla Estudio idle (waving) + en modales de victoria/derrota
+- Animaciones rubber-hose: rebote vertical, brazos rotando con `withRepeat`+`withSequence`, ojos estirándose, boca abriéndose, sparkles ✨ saliendo en cheer
+
+### Notificación persistente con cuenta atrás ✅
+- `expo-notifications` integrado con canal `pomodoro` (HIGH importance, PUBLIC visibility)
+- Al empezar sesión: notificación **sticky** con `Termina a las HH:MM · Tema`
+- Programada notificación de éxito con sonido al cumplirse la duración
+- Notificación de fallo cuando abandonas o sales de la app
+- Toggles separados en Ajustes: `notificationsEnabled` + `endSessionSound`
+
+### Módulo nativo Android (Accessibility Service) ✅
+- Estructura completa de módulo Expo local en `/app/frontend/modules/study-casino-blocker/`
+- **Kotlin nativo**:
+  - `BlockerAccessibilityService.kt` — escucha `TYPE_WINDOW_STATE_CHANGED`, detecta apps en primer plano, las cierra devolviendo al usuario a Study Casino con Toast
+  - `BlocklistStore.kt` — SharedPreferences que sobreviven al cierre del proceso
+  - `StudyCasinoBlockerModule.kt` — bridge JS con `getInstalledApps`, `setBlocklist`, `setAllowlist`, `setStrictMode`, `setActive`, `openAccessibilitySettings`
+- AndroidManifest.xml con el servicio + `BIND_ACCESSIBILITY_SERVICE`, `QUERY_ALL_PACKAGES`
+- Configuración `study_casino_accessibility_config.xml` con timeout 100ms, feedbackGeneric
+- JS wrapper con `requireOptionalNativeModule` que degrada a no-op en preview/iOS/Expo Go
+- UI en Ajustes: warning visible cuando no hay build nativo, 5 apps bloqueadas por defecto (TikTok, Instagram, YouTube, X, Facebook), toggle modo estricto (whitelist), botón para abrir Settings de Accesibilidad
+- Sync automático con `useAppBlockerSync()` cuando cambian settings
+- ⚠️ Solo funciona en APK nativo después de Publish + grant manual de permisos
+
+## Out-of-scope futuras iteraciones
+- Música ambient de jazz en loop
+- Eventos diarios (Lucky Hour, Coin Rush)
+- Foreground Service Android para countdown LIVE en notificación (actualmente solo "termina a las HH:MM")
 
 ### Audio vintage ✅
 - `expo-audio` integrado con preload y volume per-call

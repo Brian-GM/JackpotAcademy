@@ -9,6 +9,7 @@ import {
   DEFAULT_STATE,
   DIFFICULTY_MULTIPLIER,
   GameState,
+  Mastery,
   Rarity,
   Reward,
   Settings,
@@ -323,8 +324,46 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
   const markTopicStudied = useCallback((id: string) => {
     setState((s) => ({
       ...s,
-      topics: s.topics.map((t) => (t.id === id ? { ...t, lastStudiedAt: Date.now() } : t)),
+      topics: s.topics.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              lastStudiedAt: Date.now(),
+              reviewCount: (t.reviewCount ?? 0) + 1,
+            }
+          : t,
+      ),
     }));
+  }, []);
+
+  const setTopicMastery = useCallback((id: string, mastery: Mastery) => {
+    setState((s) => ({
+      ...s,
+      topics: s.topics.map((t) => (t.id === id ? { ...t, mastery } : t)),
+    }));
+  }, []);
+
+  const toggleCategory = useCallback((category: string) => {
+    setState((s) => {
+      const disabled = s.settings.disabledCategories ?? [];
+      const next = disabled.includes(category)
+        ? disabled.filter((c) => c !== category)
+        : [...disabled, category];
+      return { ...s, settings: { ...s.settings, disabledCategories: next } };
+    });
+  }, []);
+
+  // Smart roulette priority — higher = more likely.
+  //   importance (weight)  ×  (1 - mastery/3)  ×  (1 + daysSinceStudied / 3) clamped 1..5
+  const computeTopicPriority = useCallback((topic: Topic): number => {
+    const mastery = topic.mastery ?? 1;
+    const masteryFactor = (3 - mastery) / 3; // 1 nada, 0.66 regular, 0.33 bien, 0 controlado
+    const baseMastery = Math.max(0.1, masteryFactor); // floor so controlled topics still appear rarely
+    const weight = Math.max(0.1, topic.weight);
+    const last = topic.lastStudiedAt;
+    const days = last ? (Date.now() - last) / 86400000 : 30;
+    const timeFactor = Math.min(5, 1 + days / 3);
+    return Math.max(0.05, weight * baseMastery * timeFactor);
   }, []);
 
   const updateSettings = useCallback((patch: Partial<Settings>) => {
@@ -402,6 +441,9 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
     deleteTopic,
     toggleTopic,
     markTopicStudied,
+    setTopicMastery,
+    toggleCategory,
+    computeTopicPriority,
     updateSettings,
     addBlockedApp,
     removeBlockedApp,
