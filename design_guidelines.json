@@ -1,0 +1,132 @@
+{
+  "project_name": "Study Casino",
+  "theme": "Light / Vintage",
+  "archetype": "Custom: 1930s Vintage Casino (Organic & Earthy base with Luxury Antique accents)",
+  "design_vision": {
+    "emotion": "Nostalgic, thrilling, slightly chaotic, dopamine-driven.",
+    "core_loop": "Study (Pomodoro) -> Earn Coins -> Gamble on Slots -> Unlock Rewards -> Repeat.",
+    "visual_style": "Hand-drawn, vintage, cartoon-like, rubber hose animation, sepia and brass textures, heavy ink outlines. NOT childish, NOT minimal, NOT flat design."
+  },
+  "color_palette": {
+    "background_primary": "#E6D5B8",
+    "background_secondary": "#F4EBD9",
+    "ink_outline_black": "#2C1E16",
+    "vintage_red": "#A62C2B",
+    "antique_gold": "#D4AF37",
+    "muted_yellow": "#E8C37D",
+    "worn_wood": "#5C3A21",
+    "paper_highlight": "#FCF8F2",
+    "rules": [
+      "No pure black or pure white. Use ink_outline_black for borders and outlines to simulate hand-drawn ink.",
+      "Never use default blue or modern vibrant colors.",
+      "Ensure all text has APCA accessible contrast against sepia backgrounds."
+    ]
+  },
+  "typography": {
+    "headings": {
+      "fontFamily": "Rye",
+      "style": "Vintage poster, thick, bold.",
+      "usage": "Main screen titles, Casino signboards."
+    },
+    "subheadings": {
+      "fontFamily": "Limelight",
+      "style": "1920s/30s Art Deco casino feel.",
+      "usage": "Slot machine readouts, secondary headers."
+    },
+    "numbers": {
+      "fontFamily": "Bungee",
+      "style": "Chunky, bouncing style.",
+      "usage": "Pomodoro timer countdown, Coin balance, Streak counter."
+    },
+    "body": {
+      "fontFamily": "IM Fell English SC",
+      "style": "Old paper printing press look.",
+      "usage": "Settings text, reward descriptions."
+    },
+    "instruction": "Use expo-font to load these Google Fonts. Apply letter-spacing (tracking) to headings for vintage feel."
+  },
+  "ui_components": {
+    "buttons": {
+      "style": "Hand-painted aesthetic, curved borders (borderRadius: 20), thick 3px solid ink_outline_black border.",
+      "background": "vintage_red or antique_gold depending on hierarchy.",
+      "shadow": "Hard black shadow offset (e.g., shadowColor: '#2C1E16', shadowOffset: {width: 4, height: 4}, shadowOpacity: 1, shadowRadius: 0, elevation: 5) to mimic old cartoon pop-ups.",
+      "feedback": "Use TouchableOpacity or Pressable with scale down animation (squash) on press."
+    },
+    "cards_and_modals": {
+      "background": "background_secondary (#F4EBD9)",
+      "border": "4px solid #2C1E16",
+      "borderRadius": 12,
+      "style": "Should look like old paper tickets or vintage framed boxes. Add inner borders if possible to simulate printing frames."
+    },
+    "menus": {
+      "style": "Avoid flat rectangles. Use SVG backgrounds or rounded containers to create curved, arched menu shapes reminiscent of old jukeboxes or slot machines."
+    },
+    "icons": {
+      "style": "Antique brass or black ink outlines. No sleek modern line-icons. Use custom images where possible or thick bold vectors."
+    }
+  },
+  "textures_and_patterns": {
+    "background": "Use the provided worn_paper_texture image as a repeating or stretched ImageBackground for the main app container.",
+    "svg_patterns": "Use SVG to create sunburst rays (vintage red and muted yellow alternating) for jackpot backgrounds. Use dense crosshatching for shadows.",
+    "gradients": "Radial gradients (lighter cream in center, darker sepia at edges) to create a vignette dusty casino atmosphere."
+  },
+  "animations": {
+    "style": "Rubber hose animation: squash and stretch, bouncy, exaggerated.",
+    "transitions": "Vintage transition cards (e.g., iris wipe or circle crop closing in).",
+    "feedback": "Exaggerated scale bouncing when a button is pressed. Coins should spin and scale up when earned.",
+    "tools": "Use React Native Reanimated or Lottie for complex character/casino reactions."
+  },
+  "media": {
+    "worn_paper_texture": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/42d21ca8-1370-4571-b3ce-64b01a356a7f/images/798b4f514da4ef8a1287b375637fdb1e6a5b96b2a00d63c1de5e14c0427f9414.png",
+      "description": "Base background for all screens. Set as ImageBackground with 'cover' resize mode.",
+      "category": "backgrounds"
+    },
+    "vintage_slot_machine": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/42d21ca8-1370-4571-b3ce-64b01a356a7f/images/3b99865bdf96ac3f75074a474630a1daef0a08bace24c6215e77fe72dfb2567b.png",
+      "description": "Central UI element for the Casino screen. Place interactive reels over this background.",
+      "category": "ui_assets"
+    },
+    "antique_brass_coin": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/42d21ca8-1370-4571-b3ce-64b01a356a7f/images/0570b09dfcd9854b5217ea0e36a98a812ca71375453184d56ada5ab8f372875a.png",
+      "description": "Use as the currency icon across the app (Home balance, Reward costs).",
+      "category": "icons"
+    },
+    "vintage_roulette_wheel": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/42d21ca8-1370-4571-b3ce-64b01a356a7f/images/48b92553c87252f4a4d10e414679e28f368d8b0fc8570a658b091bfc66d81547.png",
+      "description": "Use for the 'Topic Roulette' screen to pick study topics.",
+      "category": "ui_assets"
+    },
+    "locked_reward_ticket": {
+      "url": "https://static.prod-images.emergentagent.com/jobs/42d21ca8-1370-4571-b3ce-64b01a356a7f/images/4c2e18a971077709288721f2448e69581045bdc8ca82de6bf6d71fcd287862ae.png",
+      "description": "Use in the Rewards screen to denote locked dopamine rewards.",
+      "category": "ui_assets"
+    }
+  },
+  "screens": {
+    "Home": "Display coin balance prominently with 'antique_brass_coin'. Show streak counter. 'Start Study' button must be massive, bouncy, and in vintage_red. Active rewards shown on old paper ticket cards.",
+    "Study_Screen": "Vintage Pomodoro timer. Large 'Bungee' font for countdown. Flashing red 'CASINO CLOSED' UI on failure. Streak meter looks like a steam pressure gauge.",
+    "Casino_Screen": "Use 'vintage_slot_machine' asset. Implement physical-feeling spin lever. Jackpot animations feature radiating SVG sunbursts and coin showers.",
+    "Topic_Roulette": "Use 'vintage_roulette_wheel' asset. Center it and apply rotation animations. Topics written in 'Limelight' font around the wheel.",
+    "Rewards_Screen": "Inventory of old paper cards. Use 'locked_reward_ticket' for items on cooldown. Unlocked rewards have glowing antique_gold borders."
+  },
+  "testing_attributes": {
+    "rule": "All interactive and key informational elements MUST include both 'testID' (for React Native) and 'data-testid' (for web fallbacks) attributes.",
+    "examples": {
+      "start_study": "testID='start-study-button' data-testid='start-study-button'",
+      "spin_slot": "testID='spin-slot-button' data-testid='spin-slot-button'",
+      "topic_roulette": "testID='topic-roulette-wheel' data-testid='topic-roulette-wheel'",
+      "coin_balance": "testID='coin-balance-text' data-testid='coin-balance-text'",
+      "fail_study": "testID='fail-study-button' data-testid='fail-study-button'"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Do NOT use generic flat React Native styles. Everything must look like 1930s hand-drawn animation with heavy #2C1E16 ink outlines.",
+    "Use hard shadows (shadowOffset with shadowOpacity: 1 and shadowRadius: 0) to mimic 2D cartoon depth, not soft modern blur.",
+    "Implement language in Spanish (Español) natively across all hardcoded strings. Do not use English.",
+    "Build strictly in standard .js files as per user configuration, using Expo and React Native primitives.",
+    "Wrap the main screens in ImageBackground using 'worn_paper_texture' rather than plain solid background colors.",
+    "For icons, avoid modern line-art vector icons. Fall back to text emojis or text if custom images aren't sufficient, but heavily prioritize the provided media assets.",
+    "Use AsyncStorage for the local-only, offline-first data model (coins, streaks, rewards inventory)."
+  ]
+}
