@@ -1,13 +1,15 @@
 // Centralized game store with reducer-style actions, persisted to AsyncStorage.
-// All economy logic flows through these helpers so screens stay declarative.
 
 import { useEffect, useState, useCallback, createContext, useContext, ReactNode } from "react";
 
 import { storage } from "@/src/utils/storage";
 
 import {
+  BlockedApp,
   DEFAULT_STATE,
+  DIFFICULTY_MULTIPLIER,
   GameState,
+  Rarity,
   Reward,
   Settings,
   Topic,
@@ -38,12 +40,15 @@ type StoreApi = {
     minutes: number;
     pauses: number;
     highRiskBet?: number;
-  }) => { coinsEarned: number; newStreak: number };
+    topicId?: string | null;
+  }) => { coinsEarned: number; newStreak: number; difficultyLabel: string; multiplier: number };
   failStudySession: (params: { highRiskBet?: number }) => { coinsLost: number };
-  // casino
+  setCurrentTopic: (id: string | null) => void;
+  // casino — slot now grants rewards rather than coins
   recordSpin: (jackpot: boolean) => void;
+  grantRewardOfRarity: (rarity: Rarity) => Reward | null;
   // rewards
-  redeemReward: (id: string) => boolean;
+  useEarnedReward: (id: string) => boolean;
   upsertReward: (reward: Reward) => void;
   deleteReward: (id: string) => void;
   // topics
@@ -53,6 +58,11 @@ type StoreApi = {
   markTopicStudied: (id: string) => void;
   // settings
   updateSettings: (patch: Partial<Settings>) => void;
+  // blocker
+  addBlockedApp: (app: BlockedApp) => void;
+  removeBlockedApp: (pkg: string) => void;
+  addAllowedApp: (app: BlockedApp) => void;
+  removeAllowedApp: (pkg: string) => void;
   // misc
   resetAll: () => void;
   // helpers
@@ -66,20 +76,22 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<GameState>(DEFAULT_STATE);
   const [loading, setLoading] = useState(true);
 
-  // hydrate
   useEffect(() => {
     (async () => {
       const raw = await storage.getItem<string>(STORAGE_KEY, "");
       if (raw) {
         try {
           const parsed = JSON.parse(raw) as GameState;
-          // soft-merge with defaults to add new fields when app updates
+          // ensure topics have difficulty (legacy users)
+          const topics = (parsed.topics?.length ? parsed.topics : DEFAULT_STATE.topics).map(
+            (t) => ({ difficulty: t.difficulty ?? 2, ...t }) as Topic,
+          );
           setState({
             ...DEFAULT_STATE,
             ...parsed,
             settings: { ...DEFAULT_STATE.settings, ...parsed.settings },
             stats: { ...DEFAULT_STATE.stats, ...parsed.stats },
-            topics: parsed.topics?.length ? parsed.topics : DEFAULT_STATE.topics,
+            topics,
             rewards: parsed.rewards?.length ? parsed.rewards : DEFAULT_STATE.rewards,
           });
         } catch {
@@ -90,7 +102,6 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
     })();
   }, []);
 
-  // persist on every change after initial load
   useEffect(() => {
     if (loading) return;
     storage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -110,18 +121,29 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
     return ok;
   }, []);
 
+  const setCurrentTopic = useCallback((id: string | null) => {
+    setState((s) => ({ ...s, currentTopicId: id }));
+  }, []);
+
   const completeStudySession = useCallback<StoreApi["completeStudySession"]>(
-    ({ minutes, pauses, highRiskBet = 0 }) => {
+    ({ minutes, pauses, highRiskBet = 0, topicId }) => {
       let coinsEarned = 0;
       let newStreak = 0;
+      let difficultyLabel = "Medio";
+      let multiplier = 1.5;
       setState((s) => {
         const { coinsPerMinute, noPauseBonus, longSessionBonus, streakBonus, highRiskMultiplier } =
           s.settings;
-        const base = Math.floor(minutes * coinsPerMinute);
+        // Topic-based difficulty multiplier (key change in this iteration)
+        const tid = topicId ?? s.currentTopicId;
+        const topic = tid ? s.topics.find((t) => t.id === tid) : null;
+        const diff = topic?.difficulty ?? 2;
+        const diffMult = DIFFICULTY_MULTIPLIER[diff];
+        const baseRaw = minutes * coinsPerMinute * diffMult;
+        const base = Math.floor(baseRaw);
         const bonusNoPause = pauses === 0 ? noPauseBonus : 0;
         const bonusLong = minutes >= 50 ? longSessionBonus : 0;
         const today = todayISO();
-        // streak: if last study was yesterday -> +1; if today already -> keep; else reset to 1
         const yesterday = (() => {
           const d = new Date();
           d.setDate(d.getDate() - 1);
@@ -129,7 +151,7 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
         })();
         let streak = s.streak;
         if (s.lastStudyDate === today) {
-          // already studied today, do not bump streak again
+          // same day — don't bump
         } else if (s.lastStudyDate === yesterday) {
           streak = s.streak + 1;
         } else {
@@ -138,11 +160,17 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
         const bonusStreak = streak * streakBonus;
         let earned = base + bonusNoPause + bonusLong + bonusStreak;
         if (highRiskBet > 0) {
-          // user wins highRiskBet * multiplier (net = bet*multiplier; bet was already spent)
           earned += highRiskBet * highRiskMultiplier;
         }
         coinsEarned = earned;
         newStreak = streak;
+        difficultyLabel =
+          diff === 1 ? "Fácil" : diff === 2 ? "Medio" : "Difícil";
+        multiplier = diffMult;
+        // mark topic studied if any
+        const topics = topic
+          ? s.topics.map((t) => (t.id === topic.id ? { ...t, lastStudiedAt: Date.now() } : t))
+          : s.topics;
         return {
           ...s,
           coins: s.coins + earned,
@@ -153,9 +181,10 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
             totalStudyMinutes: s.stats.totalStudyMinutes + minutes,
             sessionsCompleted: s.stats.sessionsCompleted + 1,
           },
+          topics,
         };
       });
-      return { coinsEarned, newStreak };
+      return { coinsEarned, newStreak, difficultyLabel, multiplier };
     },
     [],
   );
@@ -164,7 +193,7 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
     ({ highRiskBet = 0 }) => {
       let coinsLost = 0;
       setState((s) => {
-        const penalty = s.settings.failPenaltyCoins + highRiskBet; // bet already spent counts as additional loss visualization
+        const penalty = s.settings.failPenaltyCoins + highRiskBet;
         const closeUntil = Date.now() + s.settings.casinoClosedMin * 60 * 1000;
         coinsLost = Math.min(penalty, s.coins) + highRiskBet;
         return {
@@ -172,10 +201,7 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
           coins: Math.max(0, s.coins - s.settings.failPenaltyCoins),
           streak: 0,
           casinoClosedUntil: closeUntil,
-          stats: {
-            ...s.stats,
-            sessionsFailed: s.stats.sessionsFailed + 1,
-          },
+          stats: { ...s.stats, sessionsFailed: s.stats.sessionsFailed + 1 },
         };
       });
       return { coinsLost };
@@ -194,12 +220,44 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
-  const redeemReward = useCallback((id: string) => {
+  // Grant a random reward of the given rarity (or fallback to lower rarity if empty).
+  const grantRewardOfRarity = useCallback<StoreApi["grantRewardOfRarity"]>((rarity) => {
+    let granted: Reward | null = null;
+    const order: Rarity[] = ["legendario", "epico", "raro", "comun"];
+    setState((s) => {
+      // Find rewards at requested rarity first, then lower if empty
+      const requestedIdx = order.indexOf(rarity);
+      let pool: Reward[] = [];
+      for (let i = requestedIdx; i < order.length; i++) {
+        pool = s.rewards.filter((r) => r.rarity === order[i]);
+        if (pool.length > 0) break;
+      }
+      if (pool.length === 0) pool = s.rewards;
+      if (pool.length === 0) return s;
+      const chosen = pool[Math.floor(Math.random() * pool.length)];
+      granted = chosen;
+      return {
+        ...s,
+        rewards: s.rewards.map((r) =>
+          r.id === chosen.id
+            ? {
+                ...r,
+                earnedCount: (r.earnedCount ?? 0) + 1,
+                totalEarned: (r.totalEarned ?? 0) + 1,
+              }
+            : r,
+        ),
+      };
+    });
+    return granted;
+  }, []);
+
+  const useEarnedReward = useCallback((id: string) => {
     let ok = false;
     setState((s) => {
       const r = s.rewards.find((x) => x.id === id);
       if (!r) return s;
-      if (s.coins < r.cost) return s;
+      if ((r.earnedCount ?? 0) <= 0) return s;
       const now = Date.now();
       if (r.lastUsedAt && now - r.lastUsedAt < r.cooldownMin * 60 * 1000) return s;
       const today = todayISO();
@@ -208,12 +266,12 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
       ok = true;
       return {
         ...s,
-        coins: s.coins - r.cost,
         stats: { ...s.stats, rewardsRedeemed: s.stats.rewardsRedeemed + 1 },
         rewards: s.rewards.map((x) =>
           x.id === id
             ? {
                 ...x,
+                earnedCount: (x.earnedCount ?? 0) - 1,
                 lastUsedAt: now,
                 usedDate: today,
                 usedToday: usedToday + 1,
@@ -227,13 +285,10 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
 
   const upsertReward = useCallback((reward: Reward) => {
     setState((s) => {
-      const exists = s.rewards.some((r) => r.id === reward.id);
       const finalReward = reward.id ? reward : { ...reward, id: genId("r") };
+      const exists = s.rewards.some((r) => r.id === finalReward.id);
       if (exists) {
-        return {
-          ...s,
-          rewards: s.rewards.map((r) => (r.id === finalReward.id ? finalReward : r)),
-        };
+        return { ...s, rewards: s.rewards.map((r) => (r.id === finalReward.id ? finalReward : r)) };
       }
       return { ...s, rewards: [...s.rewards, finalReward] };
     });
@@ -276,6 +331,46 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
     setState((s) => ({ ...s, settings: { ...s.settings, ...patch } }));
   }, []);
 
+  const addBlockedApp = useCallback((app: BlockedApp) => {
+    setState((s) => {
+      if (s.settings.blockedApps.some((a) => a.package === app.package)) return s;
+      return {
+        ...s,
+        settings: { ...s.settings, blockedApps: [...s.settings.blockedApps, app] },
+      };
+    });
+  }, []);
+
+  const removeBlockedApp = useCallback((pkg: string) => {
+    setState((s) => ({
+      ...s,
+      settings: {
+        ...s.settings,
+        blockedApps: s.settings.blockedApps.filter((a) => a.package !== pkg),
+      },
+    }));
+  }, []);
+
+  const addAllowedApp = useCallback((app: BlockedApp) => {
+    setState((s) => {
+      if (s.settings.allowedApps.some((a) => a.package === app.package)) return s;
+      return {
+        ...s,
+        settings: { ...s.settings, allowedApps: [...s.settings.allowedApps, app] },
+      };
+    });
+  }, []);
+
+  const removeAllowedApp = useCallback((pkg: string) => {
+    setState((s) => ({
+      ...s,
+      settings: {
+        ...s.settings,
+        allowedApps: s.settings.allowedApps.filter((a) => a.package !== pkg),
+      },
+    }));
+  }, []);
+
   const resetAll = useCallback(() => {
     setState(DEFAULT_STATE);
   }, []);
@@ -295,10 +390,12 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
     loading,
     addCoins,
     spendCoins,
+    setCurrentTopic,
     completeStudySession,
     failStudySession,
     recordSpin,
-    redeemReward,
+    grantRewardOfRarity,
+    useEarnedReward,
     upsertReward,
     deleteReward,
     upsertTopic,
@@ -306,6 +403,10 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
     toggleTopic,
     markTopicStudied,
     updateSettings,
+    addBlockedApp,
+    removeBlockedApp,
+    addAllowedApp,
+    removeAllowedApp,
     resetAll,
     isCasinoClosed,
     casinoClosedRemainingSec,

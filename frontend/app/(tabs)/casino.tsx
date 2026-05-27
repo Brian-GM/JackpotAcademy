@@ -1,14 +1,8 @@
-// CASINO — slot machine + reward boxes with vintage lights and dopamine animations.
+// CASINO — slot machine + reward boxes. Wins now GRANT REWARDS (not coins).
+// Coins come from studying with difficulty multiplier; the slot is pure dopamine.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Modal,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import Animated, {
@@ -21,6 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 
 import { CasinoClosedBanner } from "@/src/components/CasinoClosedBanner";
+import { CasinoMascot } from "@/src/components/CasinoMascot";
 import { CoinBadge } from "@/src/components/CoinBadge";
 import { CoinShower } from "@/src/components/CoinShower";
 import { MarqueeLights } from "@/src/components/MarqueeLights";
@@ -31,18 +26,19 @@ import { VintageButton } from "@/src/components/VintageButton";
 import { VintageCard } from "@/src/components/VintageCard";
 import { useSounds } from "@/src/hooks/use-sounds";
 import { useGameStore } from "@/src/store/game-store";
-import { cartoonShadow, colors, fonts, inkBorder, radii } from "@/src/theme";
+import { Rarity, Reward } from "@/src/store/types";
+import { cartoonShadow, colors, fonts, inkBorder, radii, rarityColor, rarityLabel } from "@/src/theme";
 
-type SymbolDef = { symbol: string; weight: number; payout: number; name: string };
+type SymbolDef = { symbol: string; weight: number; rarity: Rarity | "none"; name: string };
 
 const SYMBOLS: SymbolDef[] = [
-  { symbol: "🍒", weight: 30, payout: 5, name: "CEREZA" },
-  { symbol: "🍋", weight: 25, payout: 7, name: "LIMÓN" },
-  { symbol: "🔔", weight: 20, payout: 10, name: "CAMPANA" },
-  { symbol: "🍀", weight: 15, payout: 15, name: "TRÉBOL" },
-  { symbol: "⭐", weight: 7, payout: 25, name: "ESTRELLA" },
-  { symbol: "💎", weight: 2, payout: 50, name: "DIAMANTE" },
-  { symbol: "7️⃣", weight: 1, payout: 100, name: "JACKPOT" },
+  { symbol: "🍒", weight: 30, rarity: "comun", name: "CEREZA" },
+  { symbol: "🍋", weight: 25, rarity: "comun", name: "LIMÓN" },
+  { symbol: "🔔", weight: 20, rarity: "raro", name: "CAMPANA" },
+  { symbol: "🍀", weight: 15, rarity: "raro", name: "TRÉBOL" },
+  { symbol: "⭐", weight: 7, rarity: "epico", name: "ESTRELLA" },
+  { symbol: "💎", weight: 2, rarity: "epico", name: "DIAMANTE" },
+  { symbol: "7️⃣", weight: 1, rarity: "legendario", name: "JACKPOT" },
 ];
 
 const TOTAL_WEIGHT = SYMBOLS.reduce((s, x) => s + x.weight, 0);
@@ -61,7 +57,6 @@ function nearMiss(symbol: SymbolDef): SymbolDef {
   return SYMBOLS[Math.max(0, idx - 1)];
 }
 
-// Reward box payout table — boxes pay coins with weighted rarity distribution.
 type BoxTier = "bronce" | "plata" | "oro";
 const BOX_TIERS: Record<
   BoxTier,
@@ -69,56 +64,39 @@ const BOX_TIERS: Record<
     name: string;
     emoji: string;
     color: string;
-    payouts: { coins: number; weight: number; rarity: string; emoji: string; label: string }[];
+    // weighted rarity distribution per tier
+    rarityWeights: Record<Rarity, number>;
   }
 > = {
   bronce: {
     name: "Caja de Bronce",
     emoji: "📦",
     color: "#8C6239",
-    payouts: [
-      { coins: 5, weight: 40, rarity: "comun", emoji: "🪙", label: "Cinco fichas" },
-      { coins: 12, weight: 30, rarity: "comun", emoji: "💰", label: "Bolsa pequeña" },
-      { coins: 25, weight: 18, rarity: "raro", emoji: "💎", label: "Diamante menor" },
-      { coins: 50, weight: 10, rarity: "epico", emoji: "🏆", label: "Trofeo de plata" },
-      { coins: 150, weight: 2, rarity: "legendario", emoji: "👑", label: "¡Corona dorada!" },
-    ],
+    rarityWeights: { comun: 70, raro: 22, epico: 7, legendario: 1 },
   },
   plata: {
     name: "Caja de Plata",
     emoji: "🎁",
     color: "#9C9CB3",
-    payouts: [
-      { coins: 20, weight: 35, rarity: "comun", emoji: "💰", label: "Bolsa de monedas" },
-      { coins: 45, weight: 30, rarity: "raro", emoji: "💎", label: "Gema brillante" },
-      { coins: 80, weight: 20, rarity: "epico", emoji: "🏆", label: "Trofeo de oro" },
-      { coins: 200, weight: 10, rarity: "epico", emoji: "💍", label: "Anillo del jefe" },
-      { coins: 500, weight: 5, rarity: "legendario", emoji: "👑", label: "¡Tesoro real!" },
-    ],
+    rarityWeights: { comun: 40, raro: 35, epico: 20, legendario: 5 },
   },
   oro: {
     name: "Caja de Oro",
     emoji: "🏆",
     color: "#D4AF37",
-    payouts: [
-      { coins: 60, weight: 35, rarity: "raro", emoji: "💎", label: "Diamante real" },
-      { coins: 120, weight: 30, rarity: "epico", emoji: "🏆", label: "Trofeo dorado" },
-      { coins: 250, weight: 20, rarity: "epico", emoji: "💍", label: "Anillo legendario" },
-      { coins: 500, weight: 10, rarity: "legendario", emoji: "👑", label: "Corona imperial" },
-      { coins: 1500, weight: 5, rarity: "legendario", emoji: "🌟", label: "¡EL GRAN PREMIO!" },
-    ],
+    rarityWeights: { comun: 15, raro: 35, epico: 35, legendario: 15 },
   },
 };
 
-function pickBoxPayout(tier: BoxTier) {
-  const t = BOX_TIERS[tier];
-  const total = t.payouts.reduce((s, p) => s + p.weight, 0);
+function pickRarityForBox(tier: BoxTier): Rarity {
+  const w = BOX_TIERS[tier].rarityWeights;
+  const total = Object.values(w).reduce((s, x) => s + x, 0);
   let r = Math.random() * total;
-  for (const p of t.payouts) {
-    r -= p.weight;
-    if (r <= 0) return p;
+  for (const rar of ["legendario", "epico", "raro", "comun"] as Rarity[]) {
+    r -= w[rar];
+    if (r <= 0) return rar;
   }
-  return t.payouts[0];
+  return "comun";
 }
 
 function Reel({ symbol, spinning }: { symbol: string; spinning: boolean }) {
@@ -155,9 +133,24 @@ function Reel({ symbol, spinning }: { symbol: string; spinning: boolean }) {
 
 type Mode = "slot" | "boxes";
 
+type SlotResult = {
+  symbol: SymbolDef;
+  matches: number;
+  rewardGranted: Reward | null;
+  consolation: number; // coins back for 2-match
+  isJackpot: boolean;
+};
+
 export default function CasinoScreen() {
-  const { state, spendCoins, addCoins, recordSpin, isCasinoClosed, casinoClosedRemainingSec } =
-    useGameStore();
+  const {
+    state,
+    spendCoins,
+    addCoins,
+    recordSpin,
+    grantRewardOfRarity,
+    isCasinoClosed,
+    casinoClosedRemainingSec,
+  } = useGameStore();
   const { play } = useSounds();
   const [mode, setMode] = useState<Mode>("slot");
   const [reels, setReels] = useState<string[]>([
@@ -166,22 +159,17 @@ export default function CasinoScreen() {
     SYMBOLS[0].symbol,
   ]);
   const [spinning, setSpinning] = useState<boolean[]>([false, false, false]);
-  const [lastResult, setLastResult] = useState<{
-    win: number;
-    jackpot: boolean;
-    matches: number;
-    name?: string;
-  } | null>(null);
+  const [slotResult, setSlotResult] = useState<SlotResult | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [showShower, setShowShower] = useState(false);
   const [, force] = useState(0);
   const spinningRef = useRef(false);
 
-  // Reward box state
   const [openingBox, setOpeningBox] = useState<BoxTier | null>(null);
   const [boxResult, setBoxResult] = useState<{
     tier: BoxTier;
-    payout: ReturnType<typeof pickBoxPayout>;
+    rarity: Rarity;
+    reward: Reward | null;
   } | null>(null);
 
   useEffect(() => {
@@ -199,7 +187,7 @@ export default function CasinoScreen() {
       const j = SYMBOLS[SYMBOLS.length - 1];
       return { reels: [j.symbol, j.symbol, j.symbol], match: j, count: 3 };
     }
-    const isTriple = Math.random() < 0.05;
+    const isTriple = Math.random() < 0.08;
     if (isTriple) {
       const winner = pickWeighted();
       const safeWinner = winner.symbol === "7️⃣" ? SYMBOLS[5] : winner;
@@ -209,7 +197,7 @@ export default function CasinoScreen() {
         count: 3,
       };
     }
-    const nearMissRoll = Math.random() < 0.18;
+    const nearMissRoll = Math.random() < 0.2;
     if (nearMissRoll) {
       const winner = pickWeighted();
       const adj = nearMiss(winner);
@@ -260,27 +248,40 @@ export default function CasinoScreen() {
 
     setTimeout(() => {
       spinningRef.current = false;
-      let win = 0;
       const m = outcome.match;
       const isJackpot = outcome.count === 3 && m.symbol === "7️⃣";
-      if (outcome.count === 3) win = m.payout;
-      else if (outcome.count === 2) win = 3;
-      if (win > 0) addCoins(win);
+      let rewardGranted: Reward | null = null;
+      let consolation = 0;
+      if (outcome.count === 3 && m.rarity !== "none") {
+        rewardGranted = grantRewardOfRarity(m.rarity as Rarity);
+      } else if (outcome.count === 2) {
+        // Small consolation coins back (still feels lossy)
+        consolation = 2;
+        addCoins(consolation);
+      }
       recordSpin(isJackpot);
-      setLastResult({ win, jackpot: isJackpot, matches: outcome.count, name: m.name });
+      setSlotResult({
+        symbol: m,
+        matches: outcome.count,
+        rewardGranted,
+        consolation,
+        isJackpot,
+      });
       setShowResult(true);
       if (isJackpot) {
         play("jackpot");
         setShowShower(true);
-        setTimeout(() => setShowShower(false), 2200);
+        setTimeout(() => setShowShower(false), 2400);
         try {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch {
           // ignore
         }
-      } else if (win > 0) {
+      } else if (rewardGranted) {
         play("win");
-        play("coin");
+        setTimeout(() => play("bell", { volume: 0.5 }), 300);
+        setShowShower(true);
+        setTimeout(() => setShowShower(false), 1500);
       } else {
         play("fail", { volume: 0.5 });
       }
@@ -289,6 +290,7 @@ export default function CasinoScreen() {
     addCoins,
     closed,
     computeOutcome,
+    grantRewardOfRarity,
     play,
     recordSpin,
     spendCoins,
@@ -312,27 +314,28 @@ export default function CasinoScreen() {
         // ignore
       }
       setOpeningBox(tier);
-      // suspense delay then reveal
       setTimeout(() => {
-        const payout = pickBoxPayout(tier);
-        addCoins(payout.coins);
-        recordSpin(payout.rarity === "legendario");
-        setBoxResult({ tier, payout });
+        const rarity = pickRarityForBox(tier);
+        const reward = grantRewardOfRarity(rarity);
+        recordSpin(rarity === "legendario");
+        setBoxResult({ tier, rarity, reward });
         setOpeningBox(null);
         play("box_open");
-        if (payout.rarity === "legendario") {
+        if (rarity === "legendario") {
           play("jackpot");
           setShowShower(true);
-          setTimeout(() => setShowShower(false), 2400);
+          setTimeout(() => setShowShower(false), 2600);
         } else {
-          play("coin");
-          play("bell", { volume: 0.5 });
+          play("win");
+          setTimeout(() => play("bell", { volume: 0.5 }), 250);
+          setShowShower(true);
+          setTimeout(() => setShowShower(false), 1500);
         }
       }, 1800);
     },
     [
-      addCoins,
       closed,
+      grantRewardOfRarity,
       play,
       recordSpin,
       spendCoins,
@@ -346,7 +349,7 @@ export default function CasinoScreen() {
     <PaperBackground>
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <SignTitle title="CASINO DE LA SUERTE" subtitle="¡Apuesta tus fichas!" />
+          <SignTitle title="CASINO DE LA SUERTE" subtitle="¡Gana premios reales!" />
 
           <View style={styles.topRow}>
             <CoinBadge amount={state.coins} size={28} />
@@ -382,13 +385,12 @@ export default function CasinoScreen() {
 
           {mode === "slot" ? (
             <>
-              {/* Slot machine cabinet w/ marquee */}
               <View style={styles.cabinet}>
                 <View style={styles.cabinetMarquee}>
                   <MarqueeLights count={14} size={9} speed={1100} />
                 </View>
                 <View style={styles.cabinetTop}>
-                  <Text style={styles.cabinetTitle}>★ JACKPOT ★</Text>
+                  <Text style={styles.cabinetTitle}>★ PREMIOS ★</Text>
                 </View>
                 <View style={styles.reels}>
                   {reels.map((s, i) => (
@@ -432,45 +434,51 @@ export default function CasinoScreen() {
                 </View>
               </Pressable>
 
-              {/* Payout table */}
+              {/* Symbol → rarity table */}
               <VintageCard style={styles.section}>
-                <Text style={styles.sectionTitle}>💰 Tabla de pagos</Text>
+                <Text style={styles.sectionTitle}>🎁 Premios posibles</Text>
+                <Text style={styles.sectionSub}>
+                  3 símbolos iguales = premio aleatorio de esa rareza
+                </Text>
                 {SYMBOLS.map((s) => (
                   <View key={s.symbol} style={styles.payRow}>
                     <Text style={styles.paySymbol}>
                       {s.symbol} {s.symbol} {s.symbol}
                     </Text>
-                    <Text style={styles.payText}>
-                      {s.name} → {s.payout} 🪙
-                    </Text>
+                    <View style={styles.payRight}>
+                      <Text style={styles.payText}>{s.name}</Text>
+                      <View
+                        style={[
+                          styles.rarityPill,
+                          s.rarity !== "none" && { backgroundColor: rarityColor(s.rarity) },
+                        ]}
+                      >
+                        <Text style={styles.rarityPillText}>
+                          {s.rarity !== "none" ? rarityLabel(s.rarity) : "—"}
+                        </Text>
+                      </View>
+                    </View>
                   </View>
                 ))}
-                <Text style={styles.payNote}>
-                  2 iguales → 3 🪙 · Probabilidad jackpot ajustable
-                </Text>
+                <Text style={styles.payNote}>2 iguales → 2 🪙 de consolación</Text>
               </VintageCard>
             </>
           ) : (
-            <BoxesSection
-              state={state}
-              closed={closed}
-              onOpen={openBox}
-            />
+            <BoxesSection state={state} closed={closed} onOpen={openBox} />
           )}
         </ScrollView>
       </SafeAreaView>
 
-      {/* Coin shower / confetti layer for jackpots */}
       <CoinShower active={showShower} count={28} variant="coins" />
 
       <SlotResultModal
         visible={showResult}
-        result={lastResult}
+        result={slotResult}
+        spinCost={state.settings.slotSpinCost}
         onClose={() => {
           play("click");
           setShowResult(false);
         }}
-        spinCost={state.settings.slotSpinCost}
       />
 
       <BoxOpeningModal tier={openingBox} />
@@ -502,13 +510,15 @@ function BoxesSection({
   return (
     <>
       <Text style={styles.boxesTagline}>
-        ✨ Abre cajas misteriosas y gana fichas con rarezas crecientes ✨
+        ✨ Las cajas dan PREMIOS REALES, no fichas ✨
       </Text>
       {(Object.keys(BOX_TIERS) as BoxTier[]).map((tier) => {
         const t = BOX_TIERS[tier];
         const cost = costs[tier];
         const canAfford = state.coins >= cost;
-        const max = t.payouts[t.payouts.length - 1].coins;
+        const w = t.rarityWeights;
+        const total = Object.values(w).reduce((s, x) => s + x, 0);
+        const legendPct = Math.round((w.legendario / total) * 100);
         return (
           <BoxCard
             key={tier}
@@ -517,7 +527,7 @@ function BoxesSection({
             emoji={t.emoji}
             color={t.color}
             cost={cost}
-            maxCoins={max}
+            legendPct={legendPct}
             disabled={!canAfford || closed}
             onOpen={() => onOpen(tier)}
           />
@@ -533,7 +543,7 @@ function BoxCard({
   emoji,
   color,
   cost,
-  maxCoins,
+  legendPct,
   disabled,
   onOpen,
 }: {
@@ -542,7 +552,7 @@ function BoxCard({
   emoji: string;
   color: string;
   cost: number;
-  maxCoins: number;
+  legendPct: number;
   disabled: boolean;
   onOpen: () => void;
 }) {
@@ -554,7 +564,7 @@ function BoxCard({
         withTiming(-3, { duration: 700 }),
         withTiming(3, { duration: 700 }),
         withTiming(0, { duration: 300 }),
-        withTiming(0, { duration: 1500 }), // pause
+        withTiming(0, { duration: 1500 }),
       ),
       -1,
       false,
@@ -573,7 +583,7 @@ function BoxCard({
         </Animated.View>
         <View style={{ flex: 1 }}>
           <Text style={styles.boxName}>{name}</Text>
-          <Text style={styles.boxRange}>Hasta {maxCoins} 🪙</Text>
+          <Text style={styles.boxRange}>{legendPct}% chance de legendario</Text>
           <Text style={styles.boxCost}>Costo: {cost} 🪙</Text>
         </View>
       </View>
@@ -596,18 +606,12 @@ function BoxOpeningModal({ tier }: { tier: BoxTier | null }) {
   useEffect(() => {
     if (!tier) return;
     wobble.value = withRepeat(
-      withSequence(
-        withTiming(-15, { duration: 80 }),
-        withTiming(15, { duration: 80 }),
-      ),
+      withSequence(withTiming(-15, { duration: 80 }), withTiming(15, { duration: 80 })),
       -1,
       true,
     );
     scale.value = withRepeat(
-      withSequence(
-        withTiming(1.15, { duration: 200 }),
-        withTiming(0.9, { duration: 200 }),
-      ),
+      withSequence(withTiming(1.15, { duration: 200 }), withTiming(0.9, { duration: 200 })),
       -1,
       true,
     );
@@ -634,7 +638,7 @@ function BoxResultModal({
   result,
   onClose,
 }: {
-  result: { tier: BoxTier; payout: ReturnType<typeof pickBoxPayout> } | null;
+  result: { tier: BoxTier; rarity: Rarity; reward: Reward | null } | null;
   onClose: () => void;
 }) {
   const scale = useSharedValue(0);
@@ -653,40 +657,46 @@ function BoxResultModal({
   const animStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
 
   if (!result) return null;
-  const isLegendary = result.payout.rarity === "legendario";
-  const bg = isLegendary ? colors.antiqueGold : colors.successGreen;
+  const isLegend = result.rarity === "legendario";
+  const bg = isLegend ? colors.antiqueGold : rarityColor(result.rarity);
+  const fg = isLegend ? colors.ink : colors.paperHighlight;
 
   return (
     <Modal visible={!!result} transparent animationType="fade">
       <View style={styles.modalBackdrop}>
-        {isLegendary && (
+        {isLegend && (
           <View style={styles.sunburstLayer} pointerEvents="none">
-            <SunburstRays size={500} rayCount={20} speed={5000} />
+            <SunburstRays size={520} rayCount={20} speed={5000} />
           </View>
         )}
         <Animated.View style={animStyle}>
           <VintageCard tint={bg} style={styles.modalCard}>
-            <Text style={styles.modalEmoji}>{result.payout.emoji}</Text>
-            <Text
-              style={[
-                styles.modalTitle,
-                { color: isLegendary ? colors.ink : colors.paperHighlight },
-              ]}
-            >
-              {result.payout.label}
+            <CasinoMascot state={isLegend ? "cheer" : "wave"} size={120} />
+            <Text style={[styles.modalEyebrow, { color: fg }]}>
+              {rarityLabel(result.rarity)}
             </Text>
-            <Text
-              style={[
-                styles.modalBody,
-                { color: isLegendary ? colors.ink : colors.paperHighlight },
-              ]}
-              testID="box-result-coins"
-            >
-              +{result.payout.coins} 🪙
-            </Text>
+            {result.reward ? (
+              <>
+                <Text style={[styles.modalEmoji]}>{result.reward.icon}</Text>
+                <Text style={[styles.modalTitle, { color: fg }]} testID="box-result-reward">
+                  {result.reward.name}
+                </Text>
+                <Text style={[styles.modalBody, { color: fg }]}>
+                  Disponible en la pestaña Premios
+                </Text>
+              </>
+            ) : (
+              <>
+                <Text style={[styles.modalEmoji]}>🎫</Text>
+                <Text style={[styles.modalTitle, { color: fg }]}>Caja vacía</Text>
+                <Text style={[styles.modalBody, { color: fg }]}>
+                  Añade premios en el Catálogo para ganarlos
+                </Text>
+              </>
+            )}
             <VintageButton
               label="ABRIR OTRA"
-              variant={isLegendary ? "red" : "gold"}
+              variant={isLegend ? "red" : "gold"}
               onPress={onClose}
               testID="close-box-result"
               style={{ marginTop: 14, minWidth: 200 }}
@@ -705,7 +715,7 @@ function SlotResultModal({
   spinCost,
 }: {
   visible: boolean;
-  result: { win: number; jackpot: boolean; matches: number; name?: string } | null;
+  result: SlotResult | null;
   onClose: () => void;
   spinCost: number;
 }) {
@@ -726,30 +736,30 @@ function SlotResultModal({
 
   if (!result) return null;
 
-  const isJackpot = result.jackpot;
-  const isWin = result.win > 0;
+  const isJackpot = result.isJackpot;
+  const isWin = !!result.rewardGranted;
   const isNearMiss = !isWin && result.matches === 2;
 
   let title = "Sin suerte...";
-  let emoji = "💨";
   let bg = colors.wornWood;
   let body = `Gastaste ${spinCost} fichas`;
+  let mascotState: "cheer" | "sad" | "wave" = "sad";
 
   if (isJackpot) {
     title = "¡¡¡JACKPOT!!!";
-    emoji = "🎰";
     bg = colors.antiqueGold;
-    body = `¡${result.name}! +${result.win} fichas`;
+    body = "¡Premio legendario desbloqueado!";
+    mascotState = "cheer";
   } else if (isWin) {
     title = "¡PREMIO!";
-    emoji = "💰";
-    bg = colors.successGreen;
-    body = `${result.name} +${result.win} fichas`;
+    bg = rarityColor(result.symbol.rarity as Rarity);
+    body = "Tu nuevo premio está en la pestaña Premios";
+    mascotState = "cheer";
   } else if (isNearMiss) {
     title = "¡Casi lo logras!";
-    emoji = "😤";
     bg = colors.warningAmber;
-    body = "Dos iguales... casi premio";
+    body = `Dos iguales · +${result.consolation} 🪙 de consolación`;
+    mascotState = "wave";
   }
 
   return (
@@ -757,12 +767,12 @@ function SlotResultModal({
       <View style={styles.modalBackdrop}>
         {isJackpot && (
           <View style={styles.sunburstLayer} pointerEvents="none">
-            <SunburstRays size={500} rayCount={24} speed={4500} />
+            <SunburstRays size={520} rayCount={24} speed={4500} />
           </View>
         )}
         <Animated.View style={animStyle}>
           <VintageCard tint={bg} style={styles.modalCard}>
-            <Text style={styles.modalEmoji}>{emoji}</Text>
+            <CasinoMascot state={mascotState} size={120} />
             <Text
               style={[
                 styles.modalTitle,
@@ -772,6 +782,12 @@ function SlotResultModal({
             >
               {title}
             </Text>
+            {result.rewardGranted && (
+              <View style={styles.rewardChip}>
+                <Text style={styles.rewardChipEmoji}>{result.rewardGranted.icon}</Text>
+                <Text style={styles.rewardChipName}>{result.rewardGranted.name}</Text>
+              </View>
+            )}
             <Text
               style={[
                 styles.modalBody,
@@ -802,7 +818,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 4,
   },
-  modeRow: { flexDirection: "row", gap: 4, ...inkBorder(2), borderRadius: radii.pill, overflow: "hidden", backgroundColor: colors.paperHighlight },
+  modeRow: {
+    flexDirection: "row",
+    gap: 4,
+    ...inkBorder(2),
+    borderRadius: radii.pill,
+    overflow: "hidden",
+    backgroundColor: colors.paperHighlight,
+  },
   modeBtn: { paddingHorizontal: 10, paddingVertical: 6 },
   modeBtnActive: { backgroundColor: colors.vintageRed },
   modeText: { fontFamily: fonts.subheading, fontSize: 11, color: colors.ink, letterSpacing: 1 },
@@ -881,8 +904,15 @@ const styles = StyleSheet.create({
     fontFamily: fonts.heading,
     fontSize: 17,
     color: colors.ink,
-    marginBottom: 10,
+    marginBottom: 4,
     letterSpacing: 1,
+  },
+  sectionSub: {
+    fontFamily: fonts.body,
+    color: colors.inkSoft,
+    fontSize: 12,
+    fontStyle: "italic",
+    marginBottom: 8,
   },
   payRow: {
     flexDirection: "row",
@@ -893,7 +923,21 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(44,30,22,0.15)",
   },
   paySymbol: { fontSize: 22 },
-  payText: { fontFamily: fonts.body, color: colors.ink, fontSize: 14 },
+  payRight: { flexDirection: "row", alignItems: "center", gap: 8 },
+  payText: { fontFamily: fonts.body, color: colors.ink, fontSize: 13 },
+  rarityPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radii.pill,
+    ...inkBorder(1),
+    backgroundColor: colors.paperPrimary,
+  },
+  rarityPillText: {
+    fontFamily: fonts.subheading,
+    fontSize: 10,
+    color: colors.paperHighlight,
+    letterSpacing: 1,
+  },
   payNote: {
     fontFamily: fonts.body,
     fontSize: 11,
@@ -901,7 +945,6 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 6,
   },
-  // Box styles
   boxesTagline: {
     fontFamily: fonts.subheading,
     color: colors.vintageRed,
@@ -923,15 +966,9 @@ const styles = StyleSheet.create({
     ...cartoonShadow(3),
   },
   boxEmoji: { fontSize: 36 },
-  boxName: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    color: colors.ink,
-    letterSpacing: 1,
-  },
+  boxName: { fontFamily: fonts.heading, fontSize: 18, color: colors.ink, letterSpacing: 1 },
   boxRange: { fontFamily: fonts.body, color: colors.inkSoft, fontSize: 12, marginTop: 2 },
   boxCost: { fontFamily: fonts.numbers, color: colors.vintageRed, fontSize: 14, marginTop: 4 },
-  // Modals
   modalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(44,30,22,0.78)",
@@ -945,35 +982,53 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  modalCard: {
-    padding: 20,
-    alignItems: "center",
-    minWidth: 280,
-    ...cartoonShadow(6),
+  modalCard: { padding: 20, alignItems: "center", minWidth: 300, ...cartoonShadow(6) },
+  modalEmoji: { fontSize: 56, marginTop: 4 },
+  modalEyebrow: {
+    fontFamily: fonts.subheading,
+    fontSize: 12,
+    letterSpacing: 4,
+    marginTop: 4,
   },
-  modalEmoji: { fontSize: 64 },
   modalTitle: {
     fontFamily: fonts.heading,
-    fontSize: 24,
+    fontSize: 22,
     marginTop: 4,
     letterSpacing: 2,
     textAlign: "center",
   },
   modalBody: {
     fontFamily: fonts.subheading,
-    fontSize: 16,
+    fontSize: 14,
     marginTop: 8,
     letterSpacing: 1,
     textAlign: "center",
+  },
+  rewardChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    ...inkBorder(2),
+    backgroundColor: colors.paperHighlight,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: radii.pill,
+    marginTop: 10,
+    ...cartoonShadow(2),
+  },
+  rewardChipEmoji: { fontSize: 26 },
+  rewardChipName: {
+    fontFamily: fonts.subheading,
+    color: colors.ink,
+    fontSize: 14,
+    letterSpacing: 1,
   },
   sunburstLayer: {
     ...StyleSheet.absoluteFillObject,
     alignItems: "center",
     justifyContent: "center",
   },
-  boxOpeningEmoji: {
-    fontSize: 130,
-  },
+  boxOpeningEmoji: { fontSize: 130 },
   boxOpeningText: {
     fontFamily: fonts.heading,
     color: colors.antiqueGold,

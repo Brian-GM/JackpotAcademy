@@ -1,22 +1,33 @@
 {
   "expo": {
-    "name": "frontend",
-    "slug": "frontend",
+    "name": "Study Casino",
+    "slug": "study-casino",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "frontend",
+    "scheme": "studycasino",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.studycasino.app",
+      "infoPlist": {
+        "NSUserNotificationsUsageDescription": "Recibe avisos cuando termine tu sesión Pomodoro"
+      }
     },
     "android": {
+      "package": "com.studycasino.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#000"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.WAKE_LOCK",
+        "android.permission.VIBRATE",
+        "android.permission.QUERY_ALL_PACKAGES"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -35,7 +46,14 @@
         }
       ],
       "expo-audio",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/adaptive-icon.png",
+          "color": "#A62C2B"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

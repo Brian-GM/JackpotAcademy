@@ -2,12 +2,33 @@
 
 export type Rarity = "comun" | "raro" | "epico" | "legendario";
 
+export type Difficulty = 1 | 2 | 3; // 1=fácil, 2=medio, 3=difícil
+
+export const DIFFICULTY_MULTIPLIER: Record<Difficulty, number> = {
+  1: 1.0,
+  2: 1.5,
+  3: 2.2,
+};
+
+export const DIFFICULTY_LABEL: Record<Difficulty, string> = {
+  1: "Fácil",
+  2: "Medio",
+  3: "Difícil",
+};
+
+export const DIFFICULTY_EMOJI: Record<Difficulty, string> = {
+  1: "🟢",
+  2: "🟡",
+  3: "🔴",
+};
+
 export type Topic = {
   id: string;
   name: string;
   weight: number; // weighted random
   enabled: boolean;
   category?: string;
+  difficulty: Difficulty;
   lastStudiedAt?: number;
 };
 
@@ -15,7 +36,8 @@ export type Reward = {
   id: string;
   name: string;
   icon: string; // emoji
-  cost: number;
+  // legacy "cost" kept for backwards compat — UI hidden now that rewards drop from slot
+  cost?: number;
   durationMin: number;
   rarity: Rarity;
   cooldownMin: number;
@@ -24,6 +46,15 @@ export type Reward = {
   dailyLimit?: number;
   usedToday?: number;
   usedDate?: string;
+  // NEW: inventory counter — how many of this reward the player has earned and not yet consumed
+  earnedCount?: number;
+  // total ever earned (lifetime)
+  totalEarned?: number;
+};
+
+export type BlockedApp = {
+  package: string; // android package id (e.g. com.zhiliaoapp.musically for TikTok)
+  label: string; // human-readable name
 };
 
 export type Settings = {
@@ -40,7 +71,7 @@ export type Settings = {
   casinoClosedMin: number;
   maxPauses: number;
   highRiskMultiplier: number;
-  appBlurFailSec: number; // seconds before backgrounding fails session
+  appBlurFailSec: number;
   // Reward boxes
   bronzeBoxCost: number;
   silverBoxCost: number;
@@ -48,6 +79,14 @@ export type Settings = {
   // Audio
   soundsEnabled: boolean;
   soundsVolume: number; // 0..1
+  // Notifications
+  notificationsEnabled: boolean;
+  endSessionSound: boolean;
+  // App blocking (requires native APK build + Accessibility Service)
+  appBlockerEnabled: boolean;
+  blockedApps: BlockedApp[];
+  allowedApps: BlockedApp[]; // whitelist — when set, ONLY these apps allowed during study
+  blockerStrictMode: boolean; // true = whitelist mode, false = blacklist mode
 };
 
 export type Stats = {
@@ -62,8 +101,9 @@ export type Stats = {
 export type GameState = {
   coins: number;
   streak: number;
-  lastStudyDate: string | null; // ISO yyyy-mm-dd
-  casinoClosedUntil: number | null; // epoch ms
+  lastStudyDate: string | null;
+  casinoClosedUntil: number | null;
+  currentTopicId: string | null; // selected topic for next/current study session
   stats: Stats;
   topics: Topic[];
   rewards: Reward[];
@@ -90,15 +130,55 @@ export const DEFAULT_SETTINGS: Settings = {
   goldBoxCost: 100,
   soundsEnabled: true,
   soundsVolume: 0.7,
+  notificationsEnabled: true,
+  endSessionSound: true,
+  appBlockerEnabled: false,
+  blockedApps: [
+    { package: "com.zhiliaoapp.musically", label: "TikTok" },
+    { package: "com.instagram.android", label: "Instagram" },
+    { package: "com.google.android.youtube", label: "YouTube" },
+    { package: "com.twitter.android", label: "X (Twitter)" },
+    { package: "com.facebook.katana", label: "Facebook" },
+  ],
+  allowedApps: [],
+  blockerStrictMode: false,
 };
 
 export const DEFAULT_TOPICS: Topic[] = [
-  { id: "t1", name: "Matemáticas", weight: 1, enabled: true, category: "Ciencias" },
-  { id: "t2", name: "Historia", weight: 1, enabled: true, category: "Humanidades" },
-  { id: "t3", name: "Ciencias Naturales", weight: 1, enabled: true, category: "Ciencias" },
-  { id: "t4", name: "Inglés", weight: 1, enabled: true, category: "Idiomas" },
-  { id: "t5", name: "Programación", weight: 1, enabled: true, category: "Tecnología" },
-  { id: "t6", name: "Literatura", weight: 1, enabled: true, category: "Humanidades" },
+  {
+    id: "t1",
+    name: "Matemáticas",
+    weight: 1,
+    enabled: true,
+    category: "Ciencias",
+    difficulty: 3,
+  },
+  { id: "t2", name: "Historia", weight: 1, enabled: true, category: "Humanidades", difficulty: 2 },
+  {
+    id: "t3",
+    name: "Ciencias Naturales",
+    weight: 1,
+    enabled: true,
+    category: "Ciencias",
+    difficulty: 2,
+  },
+  { id: "t4", name: "Inglés", weight: 1, enabled: true, category: "Idiomas", difficulty: 2 },
+  {
+    id: "t5",
+    name: "Programación",
+    weight: 1,
+    enabled: true,
+    category: "Tecnología",
+    difficulty: 3,
+  },
+  {
+    id: "t6",
+    name: "Literatura",
+    weight: 1,
+    enabled: true,
+    category: "Humanidades",
+    difficulty: 1,
+  },
 ];
 
 export const DEFAULT_REWARDS: Reward[] = [
@@ -106,7 +186,6 @@ export const DEFAULT_REWARDS: Reward[] = [
     id: "r1",
     name: "5 min de memes",
     icon: "🤣",
-    cost: 10,
     durationMin: 5,
     rarity: "comun",
     cooldownMin: 30,
@@ -116,7 +195,6 @@ export const DEFAULT_REWARDS: Reward[] = [
     id: "r2",
     name: "Café",
     icon: "☕",
-    cost: 8,
     durationMin: 10,
     rarity: "comun",
     cooldownMin: 60,
@@ -126,7 +204,6 @@ export const DEFAULT_REWARDS: Reward[] = [
     id: "r3",
     name: "1 partida online",
     icon: "🎮",
-    cost: 15,
     durationMin: 20,
     rarity: "raro",
     cooldownMin: 60,
@@ -136,7 +213,6 @@ export const DEFAULT_REWARDS: Reward[] = [
     id: "r4",
     name: "10 min TikTok",
     icon: "📱",
-    cost: 20,
     durationMin: 10,
     rarity: "raro",
     cooldownMin: 90,
@@ -146,7 +222,6 @@ export const DEFAULT_REWARDS: Reward[] = [
     id: "r5",
     name: "Snack favorito",
     icon: "🍪",
-    cost: 12,
     durationMin: 10,
     rarity: "comun",
     cooldownMin: 90,
@@ -156,7 +231,6 @@ export const DEFAULT_REWARDS: Reward[] = [
     id: "r6",
     name: "15 min YouTube",
     icon: "📺",
-    cost: 25,
     durationMin: 15,
     rarity: "epico",
     cooldownMin: 120,
@@ -166,7 +240,6 @@ export const DEFAULT_REWARDS: Reward[] = [
     id: "r7",
     name: "Episodio de serie",
     icon: "🎬",
-    cost: 40,
     durationMin: 30,
     rarity: "legendario",
     cooldownMin: 180,
@@ -179,6 +252,7 @@ export const DEFAULT_STATE: GameState = {
   streak: 0,
   lastStudyDate: null,
   casinoClosedUntil: null,
+  currentTopicId: null,
   stats: {
     totalStudyMinutes: 0,
     totalSpins: 0,

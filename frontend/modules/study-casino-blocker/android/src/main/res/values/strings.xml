@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="study_casino_blocker_description">Bloquea apps distractoras cuando estás en una sesión de Pomodoro en Study Casino. Detecta apps en primer plano y te devuelve a tu sesión de estudio.</string>
+</resources>

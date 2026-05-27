@@ -1,6 +1,7 @@
-// POMODORO STUDY SCREEN — vintage timer with high-risk mode and app-blur failure detection.
+// POMODORO STUDY SCREEN — vintage timer with topic selector, difficulty multiplier,
+// app-blur failure detection, persistent notification, mascot reactions, and native blocker.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AppState,
   AppStateStatus,
@@ -16,13 +17,34 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { FontAwesome5 } from "@expo/vector-icons";
 
+import { CasinoMascot } from "@/src/components/CasinoMascot";
 import { CoinBadge } from "@/src/components/CoinBadge";
+import { CoinShower } from "@/src/components/CoinShower";
+import { MarqueeLights } from "@/src/components/MarqueeLights";
 import { PaperBackground } from "@/src/components/PaperBackground";
 import { SignTitle } from "@/src/components/SignTitle";
+import { SunburstRays } from "@/src/components/SunburstRays";
 import { VintageButton } from "@/src/components/VintageButton";
 import { VintageCard } from "@/src/components/VintageCard";
+import {
+  clearSessionNotifications,
+  requestNotificationPermission,
+  showFailNotification,
+  showSuccessNotification,
+  startSessionNotification,
+} from "@/src/hooks/notifications";
 import { useSounds } from "@/src/hooks/use-sounds";
+import {
+  isBlockerAvailable,
+  startBlockingSession,
+  stopBlockingSession,
+} from "@/src/hooks/use-blocker";
 import { useGameStore } from "@/src/store/game-store";
+import {
+  DIFFICULTY_EMOJI,
+  DIFFICULTY_LABEL,
+  DIFFICULTY_MULTIPLIER,
+} from "@/src/store/types";
 import { cartoonShadow, colors, fonts, inkBorder, radii } from "@/src/theme";
 
 type SessionState = "idle" | "running" | "paused" | "finished" | "failed";
@@ -34,37 +56,50 @@ function formatMMSS(sec: number) {
 }
 
 export default function EstudioScreen() {
-  const { state, completeStudySession, failStudySession, spendCoins } = useGameStore();
+  const {
+    state,
+    completeStudySession,
+    failStudySession,
+    spendCoins,
+    setCurrentTopic,
+  } = useGameStore();
   const { play } = useSounds();
 
   const [duration, setDuration] = useState(state.settings.pomodoroDuration);
   const [remaining, setRemaining] = useState(state.settings.pomodoroDuration * 60);
   const [sessionState, setSessionState] = useState<SessionState>("idle");
   const [pauses, setPauses] = useState(0);
-
-  // high-risk mode
   const [highRisk, setHighRisk] = useState(false);
   const [bet, setBet] = useState("5");
+  const [showCelebration, setShowCelebration] = useState(false);
 
-  // result modals
   const [resultModal, setResultModal] = useState<
     | null
-    | { kind: "win"; coinsEarned: number; newStreak: number }
+    | {
+        kind: "win";
+        coinsEarned: number;
+        newStreak: number;
+        difficultyLabel: string;
+        multiplier: number;
+      }
     | { kind: "fail"; reason: string }
   >(null);
 
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const bgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const startTimestampRef = useRef<number>(0);
   const remainingRef = useRef<number>(remaining);
   remainingRef.current = remaining;
   const sessionStateRef = useRef<SessionState>(sessionState);
   sessionStateRef.current = sessionState;
 
-  // sync remaining when duration changes while idle
   useEffect(() => {
     if (sessionState === "idle") setRemaining(duration * 60);
   }, [duration, sessionState]);
+
+  const selectedTopic = useMemo(
+    () => state.topics.find((t) => t.id === state.currentTopicId) ?? null,
+    [state.topics, state.currentTopicId],
+  );
 
   const cleanupTimers = useCallback(() => {
     if (tickRef.current) {
@@ -85,6 +120,9 @@ export default function EstudioScreen() {
       setSessionState("failed");
       setResultModal({ kind: "fail", reason });
       play("fail");
+      clearSessionNotifications();
+      stopBlockingSession();
+      showFailNotification(reason);
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } catch {
@@ -98,29 +136,43 @@ export default function EstudioScreen() {
     cleanupTimers();
     const betValue = highRisk ? Math.max(0, parseInt(bet, 10) || 0) : 0;
     const minutes = duration;
-    const { coinsEarned, newStreak } = completeStudySession({
+    const result = completeStudySession({
       minutes,
       pauses,
       highRiskBet: betValue,
+      topicId: state.currentTopicId,
     });
     setSessionState("finished");
-    setResultModal({ kind: "win", coinsEarned, newStreak });
+    setResultModal({ kind: "win", ...result });
     play("jackpot");
     setTimeout(() => play("coin"), 400);
+    setTimeout(() => play("bell", { volume: 0.5 }), 700);
+    setShowCelebration(true);
+    setTimeout(() => setShowCelebration(false), 3000);
+    clearSessionNotifications();
+    stopBlockingSession();
+    showSuccessNotification(result.coinsEarned);
     try {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
       // best-effort
     }
-  }, [bet, cleanupTimers, completeStudySession, duration, highRisk, pauses, play]);
+  }, [
+    bet,
+    cleanupTimers,
+    completeStudySession,
+    duration,
+    highRisk,
+    pauses,
+    play,
+    state.currentTopicId,
+  ]);
 
-  // tick
   useEffect(() => {
     if (sessionState !== "running") return;
     tickRef.current = setInterval(() => {
       setRemaining((r) => {
         if (r <= 1) {
-          // complete inside effect
           setTimeout(handleComplete, 0);
           return 0;
         }
@@ -133,12 +185,10 @@ export default function EstudioScreen() {
     };
   }, [sessionState, handleComplete]);
 
-  // app blur detection
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next: AppStateStatus) => {
       if (sessionStateRef.current !== "running") return;
       if (next === "background" || next === "inactive") {
-        // start punishment timer
         if (bgTimerRef.current) clearTimeout(bgTimerRef.current);
         bgTimerRef.current = setTimeout(() => {
           handleFail("Saliste de la app durante la sesión");
@@ -153,7 +203,7 @@ export default function EstudioScreen() {
     return () => sub.remove();
   }, [handleFail, state.settings.appBlurFailSec]);
 
-  const start = () => {
+  const start = async () => {
     if (highRisk) {
       const betValue = Math.max(1, parseInt(bet, 10) || 0);
       if (!spendCoins(betValue)) {
@@ -163,13 +213,26 @@ export default function EstudioScreen() {
     }
     setPauses(0);
     setRemaining(duration * 60);
-    startTimestampRef.current = Date.now();
     setSessionState("running");
     play("lever");
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch {
       // best-effort
+    }
+    // Persistent notification with countdown end-time + scheduled bell at finish
+    if (state.settings.notificationsEnabled) {
+      const granted = await requestNotificationPermission();
+      if (granted) {
+        startSessionNotification({
+          durationMinutes: duration,
+          topicName: selectedTopic?.name ?? null,
+        });
+      }
+    }
+    // Native blocker
+    if (state.settings.appBlockerEnabled) {
+      startBlockingSession();
     }
   };
 
@@ -203,6 +266,8 @@ export default function EstudioScreen() {
   const totalSec = duration * 60;
   const progress = sessionState === "idle" ? 0 : 1 - remaining / totalSec;
   const isLive = sessionState === "running" || sessionState === "paused";
+  const diff = selectedTopic?.difficulty ?? 2;
+  const expectedBase = Math.floor(duration * state.settings.coinsPerMinute * DIFFICULTY_MULTIPLIER[diff]);
 
   return (
     <PaperBackground>
@@ -210,7 +275,6 @@ export default function EstudioScreen() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <SignTitle title="SALÓN DE ESTUDIO" subtitle="Pomodoro Vintage" />
 
-          {/* Coin balance + streak */}
           <View style={styles.topRow}>
             <CoinBadge amount={state.coins} size={28} />
             <Text style={styles.streakText} testID="study-streak">
@@ -218,8 +282,75 @@ export default function EstudioScreen() {
             </Text>
           </View>
 
+          {/* Idle: mascot waving */}
+          {sessionState === "idle" && (
+            <View style={styles.mascotRow}>
+              <CasinoMascot state="wave" size={110} />
+              <View style={styles.speechBubble}>
+                <Text style={styles.speechText}>
+                  ¡Elige un tema y empieza a estudiar! Yo cuidaré el casino mientras tanto.
+                </Text>
+                <View style={styles.speechTail} />
+              </View>
+            </View>
+          )}
+
+          {/* Topic selector */}
+          {!isLive && (
+            <VintageCard style={styles.section}>
+              <Text style={styles.sectionTitle}>📚 ¿Qué vas a estudiar?</Text>
+              <Text style={styles.sectionSub}>
+                Temas difíciles dan ×{DIFFICULTY_MULTIPLIER[3]} fichas, fáciles ×{DIFFICULTY_MULTIPLIER[1]}.
+              </Text>
+              <View style={styles.topicGrid}>
+                {state.topics
+                  .filter((t) => t.enabled)
+                  .map((t) => {
+                    const active = state.currentTopicId === t.id;
+                    return (
+                      <Pressable
+                        key={t.id}
+                        onPress={() => {
+                          play("click");
+                          setCurrentTopic(t.id);
+                        }}
+                        style={[styles.topicChip, active && styles.topicChipActive]}
+                        testID={`select-topic-${t.id}`}
+                      >
+                        <Text style={styles.topicChipDiff}>
+                          {DIFFICULTY_EMOJI[t.difficulty]}
+                        </Text>
+                        <Text
+                          style={[styles.topicChipText, active && styles.topicChipTextActive]}
+                          numberOfLines={1}
+                        >
+                          {t.name}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+              </View>
+              {selectedTopic ? (
+                <Text style={styles.diffRow}>
+                  {DIFFICULTY_EMOJI[diff]} {DIFFICULTY_LABEL[diff]} · multiplicador ×
+                  {DIFFICULTY_MULTIPLIER[diff].toFixed(1)} · estimado:{" "}
+                  <Text style={styles.expectedCoins}>+{expectedBase}🪙</Text>
+                </Text>
+              ) : (
+                <Text style={styles.diffRow}>
+                  Sin tema seleccionado · multiplicador ×{DIFFICULTY_MULTIPLIER[2].toFixed(1)} (medio)
+                </Text>
+              )}
+            </VintageCard>
+          )}
+
           {/* Timer card */}
           <VintageCard tint={colors.paperHighlight} style={styles.timerCard}>
+            {isLive && (
+              <View style={{ width: "100%", marginBottom: 4 }}>
+                <MarqueeLights count={14} size={7} speed={1100} />
+              </View>
+            )}
             <Text style={styles.timerLabel}>TIEMPO RESTANTE</Text>
             <Text
               style={[styles.timer, sessionState === "failed" && { color: colors.vintageRed }]}
@@ -227,21 +358,23 @@ export default function EstudioScreen() {
             >
               {formatMMSS(remaining)}
             </Text>
+            {!!selectedTopic && isLive && (
+              <Text style={styles.runningTopic}>
+                {DIFFICULTY_EMOJI[diff]} {selectedTopic.name}
+              </Text>
+            )}
             <View style={styles.gaugeOuter}>
               <View style={[styles.gaugeFill, { width: `${Math.min(100, progress * 100)}%` }]} />
               <View style={styles.gaugeShine} pointerEvents="none" />
             </View>
-            <Text style={styles.gaugeLabel}>📈 Medidor de presión</Text>
             <View style={styles.metaRow}>
               <View style={styles.metaBox}>
                 <Text style={styles.metaValue}>{pauses}</Text>
                 <Text style={styles.metaLabel}>Pausas</Text>
               </View>
               <View style={styles.metaBox}>
-                <Text style={styles.metaValue}>
-                  {duration >= 50 ? "+" + state.settings.longSessionBonus : "—"}
-                </Text>
-                <Text style={styles.metaLabel}>Bonus larga</Text>
+                <Text style={styles.metaValue}>×{DIFFICULTY_MULTIPLIER[diff].toFixed(1)}</Text>
+                <Text style={styles.metaLabel}>Dificultad</Text>
               </View>
               <View style={styles.metaBox}>
                 <Text style={styles.metaValue}>
@@ -255,7 +388,7 @@ export default function EstudioScreen() {
           {/* Duration selector */}
           {!isLive && (
             <VintageCard style={styles.section}>
-              <Text style={styles.sectionTitle}>⏱️ Duración de la sesión</Text>
+              <Text style={styles.sectionTitle}>⏱️ Duración</Text>
               <View style={styles.durationRow}>
                 {[15, 25, 50, 90].map((d) => (
                   <Pressable
@@ -265,10 +398,7 @@ export default function EstudioScreen() {
                     testID={`duration-${d}`}
                   >
                     <Text
-                      style={[
-                        styles.durChipText,
-                        duration === d && styles.durChipTextActive,
-                      ]}
+                      style={[styles.durChipText, duration === d && styles.durChipTextActive]}
                     >
                       {d}m
                     </Text>
@@ -294,7 +424,10 @@ export default function EstudioScreen() {
 
           {/* High risk mode */}
           {!isLive && (
-            <VintageCard style={styles.section} tint={highRisk ? colors.vintageRed : colors.paperSecondary}>
+            <VintageCard
+              style={styles.section}
+              tint={highRisk ? colors.vintageRed : colors.paperSecondary}
+            >
               <Pressable onPress={() => setHighRisk((h) => !h)} style={styles.riskHeader}>
                 <FontAwesome5
                   name={highRisk ? "fire" : "exclamation-triangle"}
@@ -309,8 +442,8 @@ export default function EstudioScreen() {
                 </View>
               </Pressable>
               <Text style={[styles.riskBody, highRisk && { color: colors.cream }]}>
-                Apuesta fichas. Gana {state.settings.highRiskMultiplier}× si completas. Pierdes todo
-                si fallas.
+                Apuesta fichas. Gana {state.settings.highRiskMultiplier}× si completas. Pierdes
+                todo si fallas.
               </Text>
               {highRisk && (
                 <View style={styles.betRow}>
@@ -325,6 +458,34 @@ export default function EstudioScreen() {
                   <Text style={[styles.bodyText, { color: colors.paperHighlight }]}>fichas</Text>
                 </View>
               )}
+            </VintageCard>
+          )}
+
+          {/* Active integrations indicator */}
+          {!isLive && (
+            <VintageCard style={styles.section} tint={colors.paperHighlight}>
+              <View style={styles.intRow}>
+                <Text style={styles.intIcon}>🔔</Text>
+                <Text style={styles.intText}>
+                  {state.settings.notificationsEnabled
+                    ? "Notificación persistente activada"
+                    : "Notificaciones desactivadas"}
+                </Text>
+              </View>
+              <View style={styles.intRow}>
+                <Text style={styles.intIcon}>📵</Text>
+                <Text style={styles.intText}>
+                  {!isBlockerAvailable
+                    ? "Bloqueador de apps: requiere build nativo"
+                    : state.settings.appBlockerEnabled
+                      ? `Bloqueando ${
+                          state.settings.blockerStrictMode
+                            ? `whitelist (${state.settings.allowedApps.length})`
+                            : `${state.settings.blockedApps.length} apps`
+                        }`
+                      : "Bloqueador apagado"}
+                </Text>
+              </View>
             </VintageCard>
           )}
 
@@ -377,38 +538,47 @@ export default function EstudioScreen() {
             )}
           </View>
 
-          <Text style={styles.warning}>
-            ⚠️ Si abandonas o sales de la app durante más de{" "}
-            {state.settings.appBlurFailSec}s, la sesión falla y el casino cierra{" "}
-            {state.settings.casinoClosedMin} min.
-          </Text>
+          {!isLive && (
+            <Text style={styles.warning}>
+              ⚠️ Si abandonas o sales de la app durante más de {state.settings.appBlurFailSec}s,
+              la sesión falla y el casino cierra {state.settings.casinoClosedMin} min.
+            </Text>
+          )}
         </ScrollView>
       </SafeAreaView>
 
-      {/* Result modal */}
+      <CoinShower active={showCelebration} count={26} variant="coins" />
+
       <Modal visible={!!resultModal} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
+          {resultModal?.kind === "win" && (
+            <View style={styles.sunburstLayer} pointerEvents="none">
+              <SunburstRays size={520} rayCount={20} speed={5500} />
+            </View>
+          )}
           <VintageCard
-            tint={
-              resultModal?.kind === "win" ? colors.antiqueGold : colors.vintageRedDark
-            }
+            tint={resultModal?.kind === "win" ? colors.antiqueGold : colors.vintageRedDark}
             style={styles.modalCard}
           >
+            <CasinoMascot
+              state={resultModal?.kind === "win" ? "cheer" : "sad"}
+              size={130}
+            />
             {resultModal?.kind === "win" ? (
               <>
-                <Text style={styles.modalEmoji}>🎉</Text>
                 <Text style={styles.modalTitle}>¡JACKPOT DE ESTUDIO!</Text>
-                <Text style={styles.modalBody}>
-                  Ganaste {resultModal.coinsEarned} fichas
+                <Text style={styles.modalBody}>+{resultModal.coinsEarned} fichas 🪙</Text>
+                <Text style={styles.modalSubBody}>
+                  {DIFFICULTY_EMOJI[diff]} {resultModal.difficultyLabel} ×
+                  {resultModal.multiplier.toFixed(1)} · Racha {resultModal.newStreak}🔥
                 </Text>
-                <Text style={styles.modalSubBody}>Racha: {resultModal.newStreak} días 🔥</Text>
+                <Text style={styles.modalHint}>
+                  Apuesta tus fichas en el casino para ganar premios reales.
+                </Text>
               </>
             ) : (
               <>
-                <Text style={styles.modalEmoji}>💀</Text>
-                <Text style={[styles.modalTitle, { color: colors.cream }]}>
-                  CASINO CERRADO
-                </Text>
+                <Text style={[styles.modalTitle, { color: colors.cream }]}>CASINO CERRADO</Text>
                 <Text style={[styles.modalBody, { color: colors.cream }]}>
                   {resultModal?.reason}
                 </Text>
@@ -431,6 +601,8 @@ export default function EstudioScreen() {
   );
 }
 
+void DIFFICULTY_LABEL;
+
 const styles = StyleSheet.create({
   scroll: { padding: 16, paddingBottom: 32, gap: 14 },
   topRow: {
@@ -439,15 +611,40 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 4,
   },
-  streakText: {
-    fontFamily: fonts.numbers,
-    fontSize: 18,
-    color: colors.ink,
-  },
-  timerCard: {
+  streakText: { fontFamily: fonts.numbers, fontSize: 18, color: colors.ink },
+  mascotRow: {
+    flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
+    gap: 8,
   },
+  speechBubble: {
+    flex: 1,
+    backgroundColor: colors.paperHighlight,
+    ...inkBorder(3),
+    borderRadius: radii.md,
+    padding: 12,
+    ...cartoonShadow(4),
+  },
+  speechText: {
+    fontFamily: fonts.body,
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  speechTail: {
+    position: "absolute",
+    left: -10,
+    top: "50%",
+    width: 0,
+    height: 0,
+    borderTopWidth: 10,
+    borderBottomWidth: 10,
+    borderRightWidth: 14,
+    borderTopColor: "transparent",
+    borderBottomColor: "transparent",
+    borderRightColor: colors.ink,
+  },
+  timerCard: { alignItems: "center", paddingVertical: 16 },
   timerLabel: {
     fontFamily: fonts.subheading,
     fontSize: 12,
@@ -456,13 +653,20 @@ const styles = StyleSheet.create({
   },
   timer: {
     fontFamily: fonts.numbers,
-    fontSize: 72,
+    fontSize: 70,
     color: colors.ink,
     letterSpacing: 4,
     marginVertical: 6,
     textShadowColor: colors.antiqueGold,
     textShadowOffset: { width: 3, height: 3 },
     textShadowRadius: 0,
+  },
+  runningTopic: {
+    fontFamily: fonts.subheading,
+    color: colors.vintageRed,
+    fontSize: 13,
+    letterSpacing: 2,
+    marginBottom: 6,
   },
   gaugeOuter: {
     width: "100%",
@@ -473,10 +677,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginTop: 4,
   },
-  gaugeFill: {
-    height: "100%",
-    backgroundColor: colors.vintageRed,
-  },
+  gaugeFill: { height: "100%", backgroundColor: colors.vintageRed },
   gaugeShine: {
     position: "absolute",
     top: 2,
@@ -485,12 +686,6 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: "rgba(255,255,255,0.25)",
   },
-  gaugeLabel: {
-    fontFamily: fonts.body,
-    color: colors.inkSoft,
-    marginTop: 6,
-    fontSize: 12,
-  },
   metaRow: {
     flexDirection: "row",
     justifyContent: "space-around",
@@ -498,16 +693,53 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   metaBox: { alignItems: "center" },
-  metaValue: { fontFamily: fonts.numbers, fontSize: 18, color: colors.vintageRed },
+  metaValue: { fontFamily: fonts.numbers, fontSize: 16, color: colors.vintageRed },
   metaLabel: { fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft },
   section: { padding: 14 },
   sectionTitle: {
     fontFamily: fonts.heading,
     fontSize: 16,
     color: colors.ink,
-    marginBottom: 10,
+    marginBottom: 6,
     letterSpacing: 1,
   },
+  sectionSub: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+    fontStyle: "italic",
+    marginBottom: 10,
+  },
+  topicGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  topicChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    ...inkBorder(2),
+    borderRadius: radii.pill,
+    backgroundColor: colors.paperHighlight,
+    maxWidth: "48%",
+  },
+  topicChipActive: { backgroundColor: colors.antiqueGold },
+  topicChipDiff: { fontSize: 14 },
+  topicChipText: {
+    fontFamily: fonts.subheading,
+    color: colors.ink,
+    fontSize: 13,
+    letterSpacing: 1,
+    maxWidth: 110,
+  },
+  topicChipTextActive: { color: colors.ink },
+  diffRow: {
+    fontFamily: fonts.body,
+    color: colors.inkSoft,
+    fontSize: 12,
+    marginTop: 10,
+    textAlign: "center",
+  },
+  expectedCoins: { color: colors.vintageRed, fontFamily: fonts.numbers, fontSize: 14 },
   durationRow: { flexDirection: "row", gap: 8, flexWrap: "wrap" },
   durChip: {
     ...inkBorder(2),
@@ -516,9 +748,7 @@ const styles = StyleSheet.create({
     borderRadius: radii.pill,
     backgroundColor: colors.paperHighlight,
   },
-  durChipActive: {
-    backgroundColor: colors.vintageRed,
-  },
+  durChipActive: { backgroundColor: colors.vintageRed },
   durChipText: { fontFamily: fonts.subheading, color: colors.ink, letterSpacing: 1 },
   durChipTextActive: { color: colors.paperHighlight },
   customRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10 },
@@ -535,11 +765,7 @@ const styles = StyleSheet.create({
     color: colors.ink,
     textAlign: "center",
   },
-  riskHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-  },
+  riskHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
   riskTitle: {
     fontFamily: fonts.heading,
     fontSize: 16,
@@ -548,12 +774,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   riskBody: { fontFamily: fonts.body, color: colors.inkSoft, marginTop: 6 },
-  betRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    marginTop: 10,
-  },
+  betRow: { flexDirection: "row", alignItems: "center", gap: 10, marginTop: 10 },
   toggle: {
     width: 44,
     height: 24,
@@ -572,10 +793,10 @@ const styles = StyleSheet.create({
     ...inkBorder(1),
   },
   toggleKnobOn: { alignSelf: "flex-end" },
-  actions: {
-    flexDirection: "row",
-    gap: 12,
-  },
+  intRow: { flexDirection: "row", gap: 10, alignItems: "center", paddingVertical: 4 },
+  intIcon: { fontSize: 18 },
+  intText: { fontFamily: fonts.body, color: colors.ink, fontSize: 13, flex: 1 },
+  actions: { flexDirection: "row", gap: 12 },
   warning: {
     fontFamily: fonts.body,
     fontSize: 12,
@@ -586,7 +807,7 @@ const styles = StyleSheet.create({
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: "rgba(44,30,22,0.7)",
+    backgroundColor: "rgba(44,30,22,0.78)",
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
@@ -594,21 +815,20 @@ const styles = StyleSheet.create({
   modalCard: {
     padding: 20,
     alignItems: "center",
-    minWidth: 280,
+    minWidth: 300,
     ...cartoonShadow(6),
   },
-  modalEmoji: { fontSize: 64 },
   modalTitle: {
     fontFamily: fonts.heading,
-    fontSize: 24,
+    fontSize: 22,
     color: colors.ink,
-    marginTop: 4,
     letterSpacing: 2,
     textAlign: "center",
+    marginTop: 6,
   },
   modalBody: {
     fontFamily: fonts.subheading,
-    fontSize: 16,
+    fontSize: 18,
     color: colors.ink,
     marginTop: 8,
     letterSpacing: 1,
@@ -620,5 +840,19 @@ const styles = StyleSheet.create({
     color: colors.inkSoft,
     marginTop: 4,
     textAlign: "center",
+  },
+  modalHint: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.ink,
+    fontStyle: "italic",
+    marginTop: 8,
+    textAlign: "center",
+    opacity: 0.85,
+  },
+  sunburstLayer: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
   },
 });

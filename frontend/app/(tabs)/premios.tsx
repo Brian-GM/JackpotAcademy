@@ -1,4 +1,4 @@
-// REWARDS — inventory of dopamine rewards. Redeem with coins; full CRUD.
+// PREMIOS — Inventory of earned rewards + customizable catalog (drop pool for the casino).
 
 import { useEffect, useState } from "react";
 import {
@@ -15,6 +15,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { FontAwesome5 } from "@expo/vector-icons";
 
+import { CasinoMascot } from "@/src/components/CasinoMascot";
 import { CoinBadge } from "@/src/components/CoinBadge";
 import { PaperBackground } from "@/src/components/PaperBackground";
 import { SignTitle } from "@/src/components/SignTitle";
@@ -28,20 +29,7 @@ import { cartoonShadow, colors, fonts, inkBorder, radii, rarityColor, rarityLabe
 const LOCKED = require("../../assets/images/locked-ticket.png");
 
 const EMOJI_OPTIONS = [
-  "🤣",
-  "📱",
-  "🎮",
-  "📺",
-  "🎬",
-  "☕",
-  "🍪",
-  "🍫",
-  "🎵",
-  "🍕",
-  "🏃",
-  "💤",
-  "📷",
-  "🎨",
+  "🤣", "📱", "🎮", "📺", "🎬", "☕", "🍪", "🍫", "🎵", "🍕", "🏃", "💤", "📷", "🎨",
 ];
 
 function defaultReward(): Reward {
@@ -49,7 +37,6 @@ function defaultReward(): Reward {
     id: "",
     name: "",
     icon: "🎁",
-    cost: 10,
     durationMin: 10,
     rarity: "comun",
     cooldownMin: 30,
@@ -58,9 +45,10 @@ function defaultReward(): Reward {
 }
 
 export default function PremiosScreen() {
-  const { state, redeemReward, upsertReward, deleteReward } = useGameStore();
+  const { state, useEarnedReward, upsertReward, deleteReward } = useGameStore();
   const { play } = useSounds();
   const [editing, setEditing] = useState<Reward | null>(null);
+  const [tab, setTab] = useState<"inventario" | "catalogo">("inventario");
   const [, force] = useState(0);
   const [feedback, setFeedback] = useState<{ ok: boolean; msg: string } | null>(null);
 
@@ -69,8 +57,11 @@ export default function PremiosScreen() {
     return () => clearInterval(id);
   }, []);
 
-  const tryRedeem = (r: Reward) => {
-    const ok = redeemReward(r.id);
+  const inventory = state.rewards.filter((r) => (r.earnedCount ?? 0) > 0);
+  const totalEarned = inventory.reduce((s, r) => s + (r.earnedCount ?? 0), 0);
+
+  const tryUse = (r: Reward) => {
+    const ok = useEarnedReward(r.id);
     if (ok) {
       setFeedback({ ok: true, msg: `Disfruta: ${r.name}` });
       play("coin");
@@ -82,13 +73,12 @@ export default function PremiosScreen() {
       }
     } else {
       const now = Date.now();
-      let reason = `Necesitas ${r.cost} fichas`;
-      if (state.coins >= r.cost) {
-        if (r.lastUsedAt && now - r.lastUsedAt < r.cooldownMin * 60 * 1000) {
-          reason = "Aún está en cooldown";
-        } else if (r.dailyLimit) {
-          reason = "Límite diario alcanzado";
-        }
+      let reason = "No disponible";
+      if ((r.earnedCount ?? 0) <= 0) reason = "Gana este premio en el casino primero";
+      else if (r.lastUsedAt && now - r.lastUsedAt < r.cooldownMin * 60 * 1000) {
+        reason = "Aún está en cooldown";
+      } else if (r.dailyLimit) {
+        reason = "Límite diario alcanzado";
       }
       setFeedback({ ok: false, msg: reason });
       play("fail", { volume: 0.4 });
@@ -105,17 +95,36 @@ export default function PremiosScreen() {
     <PaperBackground>
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <SignTitle title="GALERÍA DE PREMIOS" subtitle="Tu dopamina, ganada" />
+          <SignTitle title="GALERÍA DE PREMIOS" subtitle="Tu dopamina ganada" />
 
           <View style={styles.topRow}>
             <CoinBadge amount={state.coins} size={28} />
-            <VintageButton
-              label="+ Nuevo"
-              variant="gold"
-              size="sm"
-              onPress={() => setEditing(defaultReward())}
-              testID="add-reward-button"
-            />
+            <View style={styles.tabRow}>
+              <Pressable
+                onPress={() => {
+                  play("click");
+                  setTab("inventario");
+                }}
+                style={[styles.tabBtn, tab === "inventario" && styles.tabBtnActive]}
+                testID="tab-inventario"
+              >
+                <Text style={[styles.tabText, tab === "inventario" && styles.tabTextActive]}>
+                  🎟️ Ganados ({totalEarned})
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  play("click");
+                  setTab("catalogo");
+                }}
+                style={[styles.tabBtn, tab === "catalogo" && styles.tabBtnActive]}
+                testID="tab-catalogo"
+              >
+                <Text style={[styles.tabText, tab === "catalogo" && styles.tabTextActive]}>
+                  📋 Catálogo
+                </Text>
+              </Pressable>
+            </View>
           </View>
 
           {feedback && (
@@ -129,89 +138,43 @@ export default function PremiosScreen() {
             </View>
           )}
 
-          {state.rewards.length === 0 && (
-            <Text style={styles.empty}>No tienes premios. Crea uno con el botón “+ Nuevo”.</Text>
-          )}
-
-          {state.rewards.map((r) => {
-            const now = Date.now();
-            const onCooldown = !!(r.lastUsedAt && now - r.lastUsedAt < r.cooldownMin * 60 * 1000);
-            const cooldownMin = onCooldown
-              ? Math.ceil((r.cooldownMin * 60 * 1000 - (now - (r.lastUsedAt ?? 0))) / 60000)
-              : 0;
-            const canAfford = state.coins >= r.cost;
-            const today = new Date().toISOString().slice(0, 10);
-            const usedToday = r.usedDate === today ? r.usedToday ?? 0 : 0;
-            const limitReached = !!(r.dailyLimit && usedToday >= r.dailyLimit);
-            const disabled = onCooldown || !canAfford || limitReached;
-
-            return (
-              <VintageCard
-                key={r.id}
-                tint={onCooldown ? colors.paperPrimary : colors.paperHighlight}
-                style={styles.rewardCard}
-                testID={`reward-${r.id}`}
-              >
-                <View style={styles.rewardRow}>
-                  <View
-                    style={[
-                      styles.iconBubble,
-                      { borderColor: rarityColor(r.rarity) },
-                    ]}
-                  >
-                    <Text style={styles.iconText}>{r.icon}</Text>
-                    {onCooldown && (
-                      <Image source={LOCKED} style={styles.lockedOverlay} pointerEvents="none" />
-                    )}
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.rewardName} numberOfLines={1}>
-                      {r.name}
-                    </Text>
-                    <View style={styles.tagsRow}>
-                      <View
-                        style={[
-                          styles.rarityTag,
-                          { backgroundColor: rarityColor(r.rarity) },
-                        ]}
-                      >
-                        <Text style={styles.rarityText}>{rarityLabel(r.rarity)}</Text>
-                      </View>
-                      <Text style={styles.metaText}>⏱ {r.durationMin} min</Text>
-                      <Text style={styles.metaText}>🪙 {r.cost}</Text>
-                    </View>
-                    {!!r.category && <Text style={styles.catText}>{r.category}</Text>}
-                    {onCooldown && (
-                      <Text style={styles.cooldownText}>
-                        🔒 Cooldown: {cooldownMin} min
-                      </Text>
-                    )}
-                    {limitReached && (
-                      <Text style={styles.cooldownText}>📅 Límite diario alcanzado</Text>
-                    )}
-                  </View>
-                </View>
-                <View style={styles.rewardActions}>
-                  <VintageButton
-                    label={onCooldown ? "BLOQUEADO" : "COBRAR"}
-                    variant="red"
-                    size="sm"
-                    disabled={disabled}
-                    onPress={() => tryRedeem(r)}
-                    testID={`redeem-${r.id}`}
-                    style={{ flex: 1 }}
-                  />
-                  <VintageButton
-                    label="Editar"
-                    variant="cream"
-                    size="sm"
-                    onPress={() => setEditing(r)}
-                    testID={`edit-${r.id}`}
-                  />
-                </View>
+          {tab === "inventario" ? (
+            inventory.length === 0 ? (
+              <VintageCard style={styles.emptyCard}>
+                <CasinoMascot state="wave" size={120} />
+                <Text style={styles.emptyTitle}>Inventario vacío</Text>
+                <Text style={styles.emptyBody}>
+                  Estudia para ganar fichas y prueba suerte en el casino. Cada giro o caja te puede
+                  dar un premio aleatorio de esta galería.
+                </Text>
               </VintageCard>
-            );
-          })}
+            ) : (
+              inventory.map((r) => (
+                <InventoryItem
+                  key={r.id}
+                  reward={r}
+                  onUse={() => tryUse(r)}
+                  onEdit={() => setEditing(r)}
+                />
+              ))
+            )
+          ) : (
+            <>
+              <Text style={styles.catalogTagline}>
+                ✨ El casino sortea premios de este catálogo. Edita los nombres y rarezas.
+              </Text>
+              <VintageButton
+                label="+ Nuevo Premio"
+                variant="gold"
+                onPress={() => setEditing(defaultReward())}
+                testID="add-reward-button"
+                style={{ marginBottom: 8 }}
+              />
+              {state.rewards.map((r) => (
+                <CatalogItem key={r.id} reward={r} onEdit={() => setEditing(r)} />
+              ))}
+            </>
+          )}
         </ScrollView>
       </SafeAreaView>
 
@@ -219,6 +182,7 @@ export default function PremiosScreen() {
         reward={editing}
         onClose={() => setEditing(null)}
         onSave={(r) => {
+          play("click");
           upsertReward(r);
           setEditing(null);
         }}
@@ -228,6 +192,112 @@ export default function PremiosScreen() {
         }}
       />
     </PaperBackground>
+  );
+}
+
+function InventoryItem({
+  reward,
+  onUse,
+  onEdit,
+}: {
+  reward: Reward;
+  onUse: () => void;
+  onEdit: () => void;
+}) {
+  const now = Date.now();
+  const onCooldown = !!(
+    reward.lastUsedAt && now - reward.lastUsedAt < reward.cooldownMin * 60 * 1000
+  );
+  const cooldownMin = onCooldown
+    ? Math.ceil((reward.cooldownMin * 60 * 1000 - (now - (reward.lastUsedAt ?? 0))) / 60000)
+    : 0;
+  const today = new Date().toISOString().slice(0, 10);
+  const usedToday = reward.usedDate === today ? reward.usedToday ?? 0 : 0;
+  const limitReached = !!(reward.dailyLimit && usedToday >= reward.dailyLimit);
+  const disabled = onCooldown || limitReached;
+
+  return (
+    <VintageCard
+      tint={onCooldown ? colors.paperPrimary : colors.cream}
+      style={styles.rewardCard}
+      testID={`reward-${reward.id}`}
+    >
+      <View style={styles.rewardRow}>
+        <View style={[styles.iconBubble, { borderColor: rarityColor(reward.rarity) }]}>
+          <Text style={styles.iconText}>{reward.icon}</Text>
+          {onCooldown && (
+            <Image source={LOCKED} style={styles.lockedOverlay} pointerEvents="none" />
+          )}
+          {(reward.earnedCount ?? 0) > 1 && (
+            <View style={styles.stackBadge}>
+              <Text style={styles.stackBadgeText}>×{reward.earnedCount}</Text>
+            </View>
+          )}
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.rewardName} numberOfLines={1}>
+            {reward.name}
+          </Text>
+          <View style={styles.tagsRow}>
+            <View style={[styles.rarityTag, { backgroundColor: rarityColor(reward.rarity) }]}>
+              <Text style={styles.rarityText}>{rarityLabel(reward.rarity)}</Text>
+            </View>
+            <Text style={styles.metaText}>⏱ {reward.durationMin} min</Text>
+          </View>
+          {onCooldown && (
+            <Text style={styles.cooldownText}>🔒 Cooldown: {cooldownMin} min</Text>
+          )}
+          {limitReached && <Text style={styles.cooldownText}>📅 Límite diario alcanzado</Text>}
+        </View>
+      </View>
+      <View style={styles.rewardActions}>
+        <VintageButton
+          label={onCooldown ? "BLOQUEADO" : "USAR"}
+          variant="red"
+          size="sm"
+          disabled={disabled}
+          onPress={onUse}
+          testID={`redeem-${reward.id}`}
+          style={{ flex: 1 }}
+        />
+        <VintageButton label="Editar" variant="cream" size="sm" onPress={onEdit} testID={`edit-${reward.id}`} />
+      </View>
+    </VintageCard>
+  );
+}
+
+function CatalogItem({ reward, onEdit }: { reward: Reward; onEdit: () => void }) {
+  return (
+    <VintageCard tint={colors.paperHighlight} style={styles.catalogCard}>
+      <View style={styles.rewardRow}>
+        <View
+          style={[
+            styles.iconBubble,
+            { borderColor: rarityColor(reward.rarity), width: 52, height: 52, borderRadius: 26 },
+          ]}
+        >
+          <Text style={{ fontSize: 26 }}>{reward.icon}</Text>
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.rewardName} numberOfLines={1}>
+            {reward.name}
+          </Text>
+          <View style={styles.tagsRow}>
+            <View style={[styles.rarityTag, { backgroundColor: rarityColor(reward.rarity) }]}>
+              <Text style={styles.rarityText}>{rarityLabel(reward.rarity)}</Text>
+            </View>
+            <Text style={styles.metaText}>⏱ {reward.durationMin}m</Text>
+            <Text style={styles.metaText}>🔄 {reward.cooldownMin}m</Text>
+            {(reward.totalEarned ?? 0) > 0 && (
+              <Text style={styles.metaText}>🏆 ×{reward.totalEarned}</Text>
+            )}
+          </View>
+        </View>
+        <Pressable onPress={onEdit} style={styles.iconBtn} testID={`edit-${reward.id}`}>
+          <FontAwesome5 name="pen" color={colors.ink} size={14} />
+        </Pressable>
+      </View>
+    </VintageCard>
   );
 }
 
@@ -258,9 +328,7 @@ function EditModal({
       <View style={styles.modalBackdrop}>
         <VintageCard tint={colors.paperHighlight} style={styles.editModal}>
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.editTitle}>
-              {draft.id ? "Editar premio" : "Nuevo premio"}
-            </Text>
+            <Text style={styles.editTitle}>{draft.id ? "Editar premio" : "Nuevo premio"}</Text>
 
             <Text style={styles.fieldLabel}>Nombre</Text>
             <TextInput
@@ -294,7 +362,7 @@ function EditModal({
               placeholderTextColor={colors.inkSoft}
             />
 
-            <Text style={styles.fieldLabel}>Rareza</Text>
+            <Text style={styles.fieldLabel}>Rareza (define qué símbolos lo desbloquean)</Text>
             <View style={styles.rarityRow}>
               {RARITY_ORDER.map((rar) => (
                 <Pressable
@@ -319,40 +387,26 @@ function EditModal({
 
             <View style={styles.gridRow}>
               <View style={styles.gridCol}>
-                <Text style={styles.fieldLabel}>Costo (🪙)</Text>
-                <TextInput
-                  keyboardType="number-pad"
-                  value={String(draft.cost)}
-                  onChangeText={(t) => update("cost", Math.max(1, parseInt(t, 10) || 0))}
-                  style={styles.input}
-                  testID="reward-cost-input"
-                />
-              </View>
-              <View style={styles.gridCol}>
                 <Text style={styles.fieldLabel}>Duración (min)</Text>
                 <TextInput
                   keyboardType="number-pad"
                   value={String(draft.durationMin)}
-                  onChangeText={(t) =>
-                    update("durationMin", Math.max(1, parseInt(t, 10) || 0))
-                  }
+                  onChangeText={(t) => update("durationMin", Math.max(1, parseInt(t, 10) || 0))}
+                  style={styles.input}
+                />
+              </View>
+              <View style={styles.gridCol}>
+                <Text style={styles.fieldLabel}>Cooldown (min)</Text>
+                <TextInput
+                  keyboardType="number-pad"
+                  value={String(draft.cooldownMin)}
+                  onChangeText={(t) => update("cooldownMin", Math.max(0, parseInt(t, 10) || 0))}
                   style={styles.input}
                 />
               </View>
             </View>
 
             <View style={styles.gridRow}>
-              <View style={styles.gridCol}>
-                <Text style={styles.fieldLabel}>Cooldown (min)</Text>
-                <TextInput
-                  keyboardType="number-pad"
-                  value={String(draft.cooldownMin)}
-                  onChangeText={(t) =>
-                    update("cooldownMin", Math.max(0, parseInt(t, 10) || 0))
-                  }
-                  style={styles.input}
-                />
-              </View>
               <View style={styles.gridCol}>
                 <Text style={styles.fieldLabel}>Límite diario</Text>
                 <TextInput
@@ -364,6 +418,14 @@ function EditModal({
                   }}
                   style={styles.input}
                 />
+              </View>
+              <View style={styles.gridCol}>
+                <Text style={styles.fieldLabel}>En inventario</Text>
+                <View style={[styles.input, { alignItems: "center", justifyContent: "center" }]}>
+                  <Text style={{ fontFamily: fonts.numbers, color: colors.vintageRed }}>
+                    ×{draft.earnedCount ?? 0}
+                  </Text>
+                </View>
               </View>
             </View>
 
@@ -405,14 +467,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 4,
+    flexWrap: "wrap",
+    gap: 8,
   },
-  empty: {
-    fontFamily: fonts.body,
-    color: colors.inkSoft,
-    fontStyle: "italic",
-    textAlign: "center",
-    marginTop: 12,
+  tabRow: {
+    flexDirection: "row",
+    gap: 4,
+    ...inkBorder(2),
+    borderRadius: radii.pill,
+    overflow: "hidden",
+    backgroundColor: colors.paperHighlight,
   },
+  tabBtn: { paddingHorizontal: 12, paddingVertical: 6 },
+  tabBtnActive: { backgroundColor: colors.vintageRed },
+  tabText: { fontFamily: fonts.subheading, fontSize: 11, color: colors.ink, letterSpacing: 1 },
+  tabTextActive: { color: colors.paperHighlight },
   feedback: {
     padding: 12,
     borderRadius: radii.md,
@@ -424,7 +493,32 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     textAlign: "center",
   },
+  emptyCard: { padding: 22, alignItems: "center" },
+  emptyTitle: {
+    fontFamily: fonts.heading,
+    color: colors.ink,
+    fontSize: 20,
+    letterSpacing: 1,
+    marginTop: 8,
+  },
+  emptyBody: {
+    fontFamily: fonts.body,
+    color: colors.inkSoft,
+    fontSize: 13,
+    textAlign: "center",
+    marginTop: 6,
+    paddingHorizontal: 12,
+    lineHeight: 18,
+  },
+  catalogTagline: {
+    fontFamily: fonts.body,
+    color: colors.inkSoft,
+    fontStyle: "italic",
+    textAlign: "center",
+    fontSize: 12,
+  },
   rewardCard: { padding: 12 },
+  catalogCard: { padding: 10 },
   rewardRow: { flexDirection: "row", gap: 12, alignItems: "center" },
   iconBubble: {
     width: 64,
@@ -435,7 +529,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     borderWidth: 3,
     ...cartoonShadow(2),
-    overflow: "hidden",
+    overflow: "visible",
   },
   iconText: { fontSize: 32 },
   lockedOverlay: {
@@ -444,13 +538,26 @@ const styles = StyleSheet.create({
     height: 64,
     opacity: 0.85,
     resizeMode: "cover",
+    borderRadius: 32,
   },
-  rewardName: {
-    fontFamily: fonts.heading,
-    fontSize: 18,
-    color: colors.ink,
-    letterSpacing: 1,
+  stackBadge: {
+    position: "absolute",
+    top: -8,
+    right: -8,
+    backgroundColor: colors.vintageRed,
+    ...inkBorder(2),
+    borderRadius: 12,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+    minWidth: 24,
+    alignItems: "center",
   },
+  stackBadgeText: {
+    fontFamily: fonts.numbers,
+    color: colors.paperHighlight,
+    fontSize: 12,
+  },
+  rewardName: { fontFamily: fonts.heading, fontSize: 18, color: colors.ink, letterSpacing: 1 },
   tagsRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -471,7 +578,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   metaText: { fontFamily: fonts.body, fontSize: 12, color: colors.inkSoft },
-  catText: { fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft, marginTop: 2 },
   cooldownText: {
     fontFamily: fonts.body,
     fontSize: 12,
@@ -479,10 +585,15 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 4,
   },
-  rewardActions: {
-    flexDirection: "row",
-    gap: 8,
-    marginTop: 10,
+  rewardActions: { flexDirection: "row", gap: 8, marginTop: 10 },
+  iconBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.cream,
+    borderRadius: radii.sm,
+    ...inkBorder(2),
   },
   modalBackdrop: {
     flex: 1,
@@ -540,12 +651,7 @@ const styles = StyleSheet.create({
     ...inkBorder(2),
     backgroundColor: colors.paperPrimary,
   },
-  rarityChipText: {
-    fontFamily: fonts.subheading,
-    color: colors.ink,
-    fontSize: 12,
-    letterSpacing: 1,
-  },
+  rarityChipText: { fontFamily: fonts.subheading, color: colors.ink, fontSize: 12, letterSpacing: 1 },
   gridRow: { flexDirection: "row", gap: 10 },
   gridCol: { flex: 1 },
   modalActions: { flexDirection: "row", gap: 10, marginTop: 16 },
