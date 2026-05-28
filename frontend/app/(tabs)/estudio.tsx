@@ -413,8 +413,7 @@ export default function EstudioScreen() {
                               <Image 
                                 source={DOMINIO_ICONS[mastery]} 
                                 style={styles.topicMasteryIcon} 
-                                contentFit="cover"
-                                contentPosition="top"
+                                contentFit="contain"
                               />
                             </View>
                             <View style={styles.topicTextCol}>
@@ -1039,17 +1038,19 @@ const styles = StyleSheet.create({
     borderColor: colors.brassDark,
   },
   topicMasteryIconContainer: {
-    width: 44,
-    height: 44,
+    width: 36,
+    height: 36,
     borderRadius: 6,
     overflow: "hidden",
     backgroundColor: colors.paperHighlight,
     borderWidth: 2,
     borderColor: colors.ink,
+    alignItems: "center",
+    justifyContent: "center",
   },
   topicMasteryIcon: {
-    width: 44,
-    height: 48,
+    width: 28,
+    height: 28,
   },
   topicTextCol: {
     flex: 1,

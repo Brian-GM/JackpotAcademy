@@ -391,14 +391,6 @@ function TopicRow({
                 testID={`mastery-${topic.id}-${m}`}
               >
                 <Image source={MASTERY_ICONS[m]} style={styles.masteryIcon} resizeMode="contain" />
-                <Text
-                  style={[
-                    styles.masteryChipText,
-                    mastery === m && { color: colors.paperHighlight },
-                  ]}
-                >
-                  {MASTERY_LABEL[m]}
-                </Text>
               </Pressable>
             ))}
           </View>
@@ -747,25 +739,34 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
   },
   masteryChip: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: radii.pill,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
     ...inkBorder(1),
     borderColor: colors.brassDark,
     backgroundColor: colors.bgPanelLight,
   },
+  masteryIcon: {
+    width: 24,
+    height: 24,
+  },
   masteryChipText: { fontFamily: fonts.body, color: colors.cream, fontSize: 11 },
   masteryRowCompact: { flexDirection: "row", gap: 6, marginTop: 8 },
   masteryChipCompact: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     ...goldBorder(2),
     backgroundColor: colors.bgPanelLight,
     alignItems: "center",
     justifyContent: "center",
   },
-  masteryChipEmoji: { fontSize: 14 },
+  masteryIconSmall: {
+    width: 24,
+    height: 24,
+  },
   editIconBtn: {
     width: 30,
     height: 30,

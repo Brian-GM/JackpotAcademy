@@ -94,8 +94,8 @@ export function VintageButton({
         : { paddingVertical: 10, paddingHorizontal: 18 };
 
   const fontSize = size === "lg" ? 18 : size === "sm" ? 12 : 15;
-  const iconSize = size === "lg" ? 44 : size === "sm" ? 20 : 30;
-  const badgeSize = size === "lg" ? 48 : size === "sm" ? 24 : 34;
+  const iconSize = size === "lg" ? 52 : size === "sm" ? 24 : 36;
+  const badgeSize = size === "lg" ? 56 : size === "sm" ? 28 : 40;
   const bulbCount = size === "lg" ? 9 : size === "sm" ? 5 : 7;
   const bulbsTop: number[] = [];
   for (let i = 1; i <= bulbCount; i++) {
