@@ -55,11 +55,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="ruleta"
+        name="temas"
         options={{
-          tabBarLabel: ({ focused }) => <TabLabel label="Ruleta" focused={focused} />,
+          tabBarLabel: ({ focused }) => <TabLabel label="Temas" focused={focused} />,
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="compass" color={color} focused={focused} />
+            <TabIcon name="list-ul" color={color} focused={focused} />
           ),
         }}
       />

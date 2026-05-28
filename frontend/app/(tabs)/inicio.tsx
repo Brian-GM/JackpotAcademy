@@ -93,12 +93,12 @@ export default function InicioScreen() {
               testID="start-study-button"
             />
             <VintageButton
-              label="RULETA DE TEMAS"
+              label="MIS TEMAS"
               variant="purple"
-              icon="random"
+              icon="list-ul"
               size="lg"
-              onPress={() => goTo("/(tabs)/ruleta")}
-              testID="quick-roulette-button"
+              onPress={() => goTo("/(tabs)/temas")}
+              testID="quick-temas-button"
             />
             <VintageButton
               label="JUGAR · TRAGAMONEDAS"
@@ -256,4 +256,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 2,
   },
+});
+ },
 });

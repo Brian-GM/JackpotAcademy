@@ -168,9 +168,17 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
         difficultyLabel =
           diff === 1 ? "Fácil" : diff === 2 ? "Medio" : "Difícil";
         multiplier = diffMult;
-        // mark topic studied if any
+        // mark topic studied if any — bump both timestamp and review counter
         const topics = topic
-          ? s.topics.map((t) => (t.id === topic.id ? { ...t, lastStudiedAt: Date.now() } : t))
+          ? s.topics.map((t) =>
+              t.id === topic.id
+                ? {
+                    ...t,
+                    lastStudiedAt: Date.now(),
+                    reviewCount: (t.reviewCount ?? 0) + 1,
+                  }
+                : t,
+            )
           : s.topics;
         return {
           ...s,

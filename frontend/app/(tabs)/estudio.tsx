@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AppState,
   AppStateStatus,
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -16,6 +17,13 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { FontAwesome5 } from "@expo/vector-icons";
+import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import { CasinoMascot } from "@/src/components/CasinoMascot";
 import { CoinBadge } from "@/src/components/CoinBadge";
@@ -48,6 +56,9 @@ import {
 import { cartoonShadow, colors, fonts, inkBorder, radii } from "@/src/theme";
 
 type SessionState = "idle" | "running" | "paused" | "finished" | "failed";
+type TopicMode = "manual" | "roulette";
+
+const WHEEL_IMG = require("../../assets/images/roulette-wheel.png");
 
 function formatMMSS(sec: number) {
   const m = Math.floor(sec / 60);
@@ -62,6 +73,7 @@ export default function EstudioScreen() {
     failStudySession,
     spendCoins,
     setCurrentTopic,
+    computeTopicPriority,
   } = useGameStore();
   const { play } = useSounds();
 
@@ -72,6 +84,13 @@ export default function EstudioScreen() {
   const [highRisk, setHighRisk] = useState(false);
   const [bet, setBet] = useState("5");
   const [showCelebration, setShowCelebration] = useState(false);
+  const [topicMode, setTopicMode] = useState<TopicMode>("manual");
+  const [spinning, setSpinning] = useState(false);
+  const wheelRotation = useSharedValue(0);
+
+  const wheelAnim = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${wheelRotation.value}deg` }],
+  }));
 
   const [resultModal, setResultModal] = useState<
     | null
@@ -295,41 +314,145 @@ export default function EstudioScreen() {
             </View>
           )}
 
-          {/* Topic selector */}
+          {/* Topic selector — Manual mode OR Roulette mode */}
           {!isLive && (
             <VintageCard style={styles.section}>
-              <Text style={styles.sectionTitle}>📚 ¿Qué vas a estudiar?</Text>
-              <Text style={styles.sectionSub}>
-                Temas difíciles dan ×{DIFFICULTY_MULTIPLIER[3]} fichas, fáciles ×{DIFFICULTY_MULTIPLIER[1]}.
-              </Text>
-              <View style={styles.topicGrid}>
-                {state.topics
-                  .filter((t) => t.enabled)
-                  .map((t) => {
-                    const active = state.currentTopicId === t.id;
-                    return (
-                      <Pressable
-                        key={t.id}
-                        onPress={() => {
-                          play("click");
-                          setCurrentTopic(t.id);
-                        }}
-                        style={[styles.topicChip, active && styles.topicChipActive]}
-                        testID={`select-topic-${t.id}`}
-                      >
-                        <Text style={styles.topicChipDiff}>
-                          {DIFFICULTY_EMOJI[t.difficulty]}
-                        </Text>
-                        <Text
-                          style={[styles.topicChipText, active && styles.topicChipTextActive]}
-                          numberOfLines={1}
-                        >
-                          {t.name}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
+              <View style={styles.modeSwitchRow}>
+                <Pressable
+                  onPress={() => {
+                    play("click");
+                    setTopicMode("manual");
+                  }}
+                  style={[styles.modeBtn, topicMode === "manual" && styles.modeBtnActive]}
+                  testID="mode-manual"
+                >
+                  <Text
+                    style={[
+                      styles.modeBtnText,
+                      topicMode === "manual" && styles.modeBtnTextActive,
+                    ]}
+                  >
+                    ✔️ Selección manual
+                  </Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    play("click");
+                    setTopicMode("roulette");
+                  }}
+                  style={[styles.modeBtn, topicMode === "roulette" && styles.modeBtnActive]}
+                  testID="mode-roulette"
+                >
+                  <Text
+                    style={[
+                      styles.modeBtnText,
+                      topicMode === "roulette" && styles.modeBtnTextActive,
+                    ]}
+                  >
+                    🎲 Ruleta aleatoria
+                  </Text>
+                </Pressable>
               </View>
+
+              {topicMode === "manual" ? (
+                <>
+                  <Text style={styles.sectionTitle}>📚 ¿Qué vas a estudiar?</Text>
+                  <Text style={styles.sectionSub}>
+                    Temas difíciles dan ×{DIFFICULTY_MULTIPLIER[3]} fichas, fáciles ×
+                    {DIFFICULTY_MULTIPLIER[1]}.
+                  </Text>
+                  <View style={styles.topicGrid}>
+                    {state.topics
+                      .filter((t) => t.enabled)
+                      .map((t) => {
+                        const active = state.currentTopicId === t.id;
+                        return (
+                          <Pressable
+                            key={t.id}
+                            onPress={() => {
+                              play("click");
+                              setCurrentTopic(t.id);
+                            }}
+                            style={[styles.topicChip, active && styles.topicChipActive]}
+                            testID={`select-topic-${t.id}`}
+                          >
+                            <Text style={styles.topicChipDiff}>
+                              {DIFFICULTY_EMOJI[t.difficulty]}
+                            </Text>
+                            <Text
+                              style={[
+                                styles.topicChipText,
+                                active && styles.topicChipTextActive,
+                              ]}
+                              numberOfLines={1}
+                            >
+                              {t.name}
+                            </Text>
+                          </Pressable>
+                        );
+                      })}
+                  </View>
+                </>
+              ) : (
+                <RouletteSection
+                  spinning={spinning}
+                  selectedTopic={selectedTopic}
+                  onSpin={() => {
+                    const disabledCats = state.settings.disabledCategories ?? [];
+                    const pool = state.topics.filter(
+                      (t) =>
+                        t.enabled && (!t.category || !disabledCats.includes(t.category)),
+                    );
+                    if (pool.length === 0) return;
+                    const items = pool.map((t) => ({
+                      topic: t,
+                      priority: computeTopicPriority(t),
+                    }));
+                    const total = items.reduce((s, x) => s + x.priority, 0);
+                    let r = Math.random() * total;
+                    let chosen = items[0].topic;
+                    for (const it of items) {
+                      r -= it.priority;
+                      if (r <= 0) {
+                        chosen = it.topic;
+                        break;
+                      }
+                    }
+                    setSpinning(true);
+                    play("lever");
+                    setTimeout(() => play("spinning", { volume: 0.5 }), 200);
+                    try {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                    } catch {
+                      // ignore
+                    }
+                    const rotations = 4 + Math.floor(Math.random() * 3);
+                    const offset = Math.floor(Math.random() * 360);
+                    const target = wheelRotation.value + rotations * 360 + offset;
+                    const finish = () => {
+                      setCurrentTopic(chosen.id);
+                      setSpinning(false);
+                      play("bell");
+                      try {
+                        Haptics.notificationAsync(
+                          Haptics.NotificationFeedbackType.Success,
+                        );
+                      } catch {
+                        // ignore
+                      }
+                    };
+                    wheelRotation.value = withTiming(
+                      target,
+                      { duration: 3000, easing: Easing.out(Easing.cubic) },
+                      (finished) => {
+                        if (finished) runOnJS(finish)();
+                      },
+                    );
+                  }}
+                  wheelAnim={wheelAnim}
+                />
+              )}
+
               {selectedTopic ? (
                 <Text style={styles.diffRow}>
                   {DIFFICULTY_EMOJI[diff]} {DIFFICULTY_LABEL[diff]} · multiplicador ×
@@ -338,7 +461,8 @@ export default function EstudioScreen() {
                 </Text>
               ) : (
                 <Text style={styles.diffRow}>
-                  Sin tema seleccionado · multiplicador ×{DIFFICULTY_MULTIPLIER[2].toFixed(1)} (medio)
+                  Sin tema seleccionado · multiplicador ×
+                  {DIFFICULTY_MULTIPLIER[2].toFixed(1)} (medio)
                 </Text>
               )}
             </VintageCard>
@@ -603,8 +727,120 @@ export default function EstudioScreen() {
 
 void DIFFICULTY_LABEL;
 
+function RouletteSection({
+  spinning,
+  selectedTopic,
+  onSpin,
+  wheelAnim,
+}: {
+  spinning: boolean;
+  selectedTopic: { id: string; name: string; difficulty: number } | null | undefined;
+  onSpin: () => void;
+  wheelAnim: ReturnType<typeof useAnimatedStyle>;
+}) {
+  return (
+    <View style={styles.rouletteWrap}>
+      <Text style={styles.sectionTitle}>🎲 Ruleta aleatoria</Text>
+      <Text style={styles.sectionSub}>
+        La rueda inteligente prioriza temas más importantes, menos dominados o sin repasar hace
+        tiempo.
+      </Text>
+      <View style={styles.wheelHolder}>
+        <Text style={styles.wheelArrow}>▼</Text>
+        <Animated.View style={[styles.wheelInner, wheelAnim]}>
+          <Image source={WHEEL_IMG} style={styles.wheelImg} />
+        </Animated.View>
+      </View>
+      <VintageButton
+        label={spinning ? "GIRANDO..." : selectedTopic ? "GIRAR DE NUEVO" : "¡GIRAR RULETA!"}
+        variant="purple"
+        icon="random"
+        onPress={() => !spinning && onSpin()}
+        disabled={spinning}
+        testID="spin-roulette-button"
+        style={{ marginTop: 6 }}
+      />
+      {selectedTopic && !spinning && (
+        <View style={styles.spinResult}>
+          <Text style={styles.spinResultLabel}>El destino eligió:</Text>
+          <Text style={styles.spinResultName} testID="roulette-result">
+            {selectedTopic.name}
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   scroll: { padding: 16, paddingBottom: 32, gap: 14 },
+  modeSwitchRow: {
+    flexDirection: "row",
+    gap: 4,
+    ...inkBorder(2),
+    borderColor: colors.brassDark,
+    borderRadius: radii.pill,
+    overflow: "hidden",
+    backgroundColor: colors.bgPanelLight,
+    marginBottom: 12,
+  },
+  modeBtn: {
+    flex: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 8,
+    alignItems: "center",
+  },
+  modeBtnActive: { backgroundColor: colors.vintageRed },
+  modeBtnText: {
+    fontFamily: fonts.subheading,
+    color: colors.cream,
+    fontSize: 12,
+    letterSpacing: 1,
+  },
+  modeBtnTextActive: { color: colors.paperHighlight },
+  rouletteWrap: { alignItems: "center" },
+  wheelHolder: {
+    width: 220,
+    height: 220,
+    alignItems: "center",
+    justifyContent: "center",
+    marginVertical: 8,
+  },
+  wheelArrow: {
+    position: "absolute",
+    top: -2,
+    fontSize: 26,
+    color: colors.vintageRed,
+    zIndex: 5,
+    textShadowColor: colors.bgDark,
+    textShadowOffset: { width: 2, height: 2 },
+    textShadowRadius: 0,
+  },
+  wheelInner: { width: 220, height: 220 },
+  wheelImg: { width: 220, height: 220, resizeMode: "contain" },
+  spinResult: {
+    marginTop: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    ...inkBorder(2),
+    borderColor: colors.antiqueGold,
+    borderRadius: radii.md,
+    backgroundColor: colors.bgPanelLight,
+    alignItems: "center",
+  },
+  spinResultLabel: {
+    fontFamily: fonts.subheading,
+    fontSize: 11,
+    color: colors.antiqueGold,
+    letterSpacing: 3,
+  },
+  spinResultName: {
+    fontFamily: fonts.heading,
+    fontSize: 18,
+    color: colors.paperHighlight,
+    marginTop: 4,
+    letterSpacing: 1,
+  },
   topRow: {
     flexDirection: "row",
     alignItems: "center",
