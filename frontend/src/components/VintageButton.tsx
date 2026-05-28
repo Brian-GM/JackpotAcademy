@@ -94,8 +94,8 @@ export function VintageButton({
         : { paddingVertical: 10, paddingHorizontal: 18 };
 
   const fontSize = size === "lg" ? 18 : size === "sm" ? 12 : 15;
-  const iconSize = size === "lg" ? 28 : size === "sm" ? 14 : 20;
-  const badgeSize = size === "lg" ? 40 : size === "sm" ? 24 : 32;
+  const iconSize = size === "lg" ? 44 : size === "sm" ? 20 : 30;
+  const badgeSize = size === "lg" ? 48 : size === "sm" ? 24 : 34;
   const bulbCount = size === "lg" ? 9 : size === "sm" ? 5 : 7;
   const bulbsTop: number[] = [];
   for (let i = 1; i <= bulbCount; i++) {
@@ -132,7 +132,7 @@ export function VintageButton({
 
         <View style={[styles.innerRow, padding]}>
           {!!imageSource && (
-            <View style={[styles.iconBadge, { backgroundColor: palette.iconBg, width: badgeSize, height: badgeSize, borderRadius: badgeSize / 2 }]}>
+            <View style={{ width: badgeSize, height: badgeSize, alignItems: "center", justifyContent: "center" }}>
               <Image source={imageSource} style={{ width: iconSize, height: iconSize }} resizeMode="contain" />
             </View>
           )}
