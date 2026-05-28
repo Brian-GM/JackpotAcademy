@@ -32,6 +32,16 @@ import { cartoonShadow, colors, fonts, goldBorder, inkBorder, radii, rarityColor
 // New assets
 const RACHA_ICON = require("../../assets/images/racha-icon.png");
 
+// Box tier type
+type BoxTier = "bronce" | "plata" | "oro";
+
+// Box images
+const BOX_IMAGES: Record<BoxTier, any> = {
+  bronce: require("../../assets/images/caja-bronce.png"),
+  plata: require("../../assets/images/caja-plata.png"),
+  oro: require("../../assets/images/caja-oro.png"),
+};
+
 // Slot symbol images
 const SLOT_CHERRY = require("../../assets/images/slot-cherry.png");
 const SLOT_LEMON = require("../../assets/images/slot-lemon.png");
@@ -69,7 +79,6 @@ function nearMiss(symbol: SymbolDef): SymbolDef {
   return SYMBOLS[Math.max(0, idx - 1)];
 }
 
-type BoxTier = "bronce" | "plata" | "oro";
 const BOX_TIERS: Record<
   BoxTier,
   {
@@ -609,7 +618,7 @@ function BoxCard({
     <VintageCard tint={colors.paperHighlight} style={styles.boxCard} testID={`box-${tier}`}>
       <View style={styles.boxRow}>
         <Animated.View style={[styles.boxIconWrap, { borderColor: color }, animStyle]}>
-          <Text style={styles.boxEmoji}>{emoji}</Text>
+          <Image source={BOX_IMAGES[tier]} style={styles.boxImage} resizeMode="contain" />
         </Animated.View>
         <View style={{ flex: 1 }}>
           <Text style={styles.boxName}>{name}</Text>
@@ -657,7 +666,11 @@ function BoxOpeningModal({ tier }: { tier: BoxTier | null }) {
   return (
     <Modal visible={!!tier} transparent animationType="fade">
       <View style={styles.modalBackdropDark}>
-        <Animated.Text style={[styles.boxOpeningEmoji, animStyle]}>{t.emoji}</Animated.Text>
+        <Animated.Image 
+          source={BOX_IMAGES[tier]} 
+          style={[styles.boxOpeningImage, animStyle]} 
+          resizeMode="contain"
+        />
         <Text style={styles.boxOpeningText}>Abriendo...</Text>
       </View>
     </Modal>
@@ -1029,6 +1042,7 @@ const styles = StyleSheet.create({
     ...cartoonShadow(3),
   },
   boxEmoji: { fontSize: 36 },
+  boxImage: { width: 60, height: 80 },
   boxName: { fontFamily: fonts.heading, fontSize: 18, color: colors.ink, letterSpacing: 1 },
   boxRange: { fontFamily: fonts.body, color: colors.inkSoft, fontSize: 12, marginTop: 2 },
   boxCost: { fontFamily: fonts.numbers, color: colors.vintageRed, fontSize: 14, marginTop: 4 },
@@ -1092,6 +1106,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   boxOpeningEmoji: { fontSize: 130 },
+  boxOpeningImage: { width: 150, height: 200 },
   boxOpeningText: {
     fontFamily: fonts.heading,
     color: colors.antiqueGold,

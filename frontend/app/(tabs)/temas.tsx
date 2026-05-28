@@ -34,12 +34,20 @@ import {
 } from "@/src/store/types";
 import { cartoonShadow, colors, fonts, goldBorder, inkBorder, radii } from "@/src/theme";
 
-// Mastery icons - clown states
+// Mastery icons - clown states (for compact view)
 const MASTERY_ICONS: Record<Mastery, any> = {
   0: require("../../assets/images/dominio-nada.png"),      // Nada → Payaso triste
   1: require("../../assets/images/dominio-regular.png"),   // Regular → Payaso neutral
   2: require("../../assets/images/dominio-bien.png"),      // Bien → Payaso feliz
   3: require("../../assets/images/dominio-controlado.png"), // Controlado → Payaso brillante
+};
+
+// Mastery icons - new theme icons (for edit modal)
+const MASTERY_THEME_ICONS: Record<Mastery, any> = {
+  0: require("../../assets/new-assets/TemaNadaControladoIcom.png"),
+  1: require("../../assets/new-assets/TemaRegularIcon.png"),
+  2: require("../../assets/new-assets/TemaBienIcon.png"),
+  3: require("../../assets/new-assets/TEmacontroladoIcon.png"),
 };
 
 const RACHA_ICON = require("../../assets/images/racha-icon.png");
@@ -532,24 +540,29 @@ function TopicEditModal({
             />
 
             <Text style={styles.fieldLabel}>Nivel de dominio actual</Text>
-            <View style={styles.optionRow}>
+            <View style={styles.masteryOptionRow}>
               {([0, 1, 2, 3] as Mastery[]).map((m) => (
                 <Pressable
                   key={m}
                   onPress={() => setDraft({ ...draft, mastery: m })}
                   style={[
-                    styles.optionChip,
+                    styles.masteryOptionChip,
                     (draft.mastery ?? 1) === m && {
                       backgroundColor: MASTERY_COLOR[m],
                       borderColor: colors.antiqueGold,
+                      borderWidth: 3,
                     },
                   ]}
                   testID={`topic-mastery-${m}`}
                 >
-                  <Text style={styles.optionEmoji}>{MASTERY_EMOJI[m]}</Text>
+                  <Image 
+                    source={MASTERY_THEME_ICONS[m]} 
+                    style={styles.masteryOptionIcon} 
+                    resizeMode="contain"
+                  />
                   <Text
                     style={[
-                      styles.optionLabel,
+                      styles.masteryOptionLabel,
                       (draft.mastery ?? 1) === m && { color: colors.paperHighlight },
                     ]}
                   >
@@ -860,6 +873,35 @@ const styles = StyleSheet.create({
   },
   optionEmoji: { fontSize: 14 },
   optionLabel: { fontFamily: fonts.subheading, color: colors.cream, fontSize: 12, letterSpacing: 1 },
+  masteryOptionRow: { 
+    flexDirection: "row", 
+    gap: 8, 
+    flexWrap: "wrap",
+    justifyContent: "center",
+  },
+  masteryOptionChip: {
+    width: 72,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    ...inkBorder(2),
+    borderColor: colors.brassDark,
+    borderRadius: radii.md,
+    backgroundColor: colors.bgPanelLight,
+  },
+  masteryOptionIcon: {
+    width: 48,
+    height: 48,
+  },
+  masteryOptionLabel: { 
+    fontFamily: fonts.subheading, 
+    color: colors.cream, 
+    fontSize: 9, 
+    letterSpacing: 0.5,
+    textAlign: "center",
+  },
   modalActions: { flexDirection: "row", gap: 10, marginTop: 16 },
   deleteBtn: {
     flexDirection: "row",
