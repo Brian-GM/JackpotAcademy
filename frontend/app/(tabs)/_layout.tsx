@@ -125,23 +125,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   iconWrap: {
-    width: 44,
-    height: 44,
+    width: 52,
+    height: 52,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 22,
+    borderRadius: 26,
   },
   iconFocused: {
     backgroundColor: colors.bgPanel,
     ...goldBorder(2),
   },
   iconImage: {
-    width: 34,
-    height: 34,
+    width: 44,
+    height: 44,
   },
   iconImageFocused: {
-    width: 38,
-    height: 38,
+    width: 48,
+    height: 48,
   },
   label: {
     fontFamily: fonts.subheading,
