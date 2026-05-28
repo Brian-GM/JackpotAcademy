@@ -3,6 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -27,11 +28,20 @@ import {
   DIFFICULTY_LABEL,
   Mastery,
   MASTERY_COLOR,
-  MASTERY_EMOJI,
   MASTERY_LABEL,
   Topic,
 } from "@/src/store/types";
 import { cartoonShadow, colors, fonts, goldBorder, inkBorder, radii } from "@/src/theme";
+
+// Mastery icons - clown states
+const MASTERY_ICONS: Record<Mastery, any> = {
+  0: require("../../assets/images/dominio-nada.png"),      // Nada → Payaso triste
+  1: require("../../assets/images/dominio-regular.png"),   // Regular → Payaso neutral
+  2: require("../../assets/images/dominio-bien.png"),      // Bien → Payaso feliz
+  3: require("../../assets/images/dominio-controlado.png"), // Controlado → Payaso brillante
+};
+
+const RACHA_ICON = require("../../assets/images/racha-icon.png");
 
 function formatLastStudied(ts?: number): string {
   if (!ts) return "Nunca";
@@ -379,13 +389,14 @@ function TopicRow({
                 ]}
                 testID={`mastery-${topic.id}-${m}`}
               >
+                <Image source={MASTERY_ICONS[m]} style={styles.masteryIcon} resizeMode="contain" />
                 <Text
                   style={[
                     styles.masteryChipText,
                     mastery === m && { color: colors.paperHighlight },
                   ]}
                 >
-                  {MASTERY_EMOJI[m]} {MASTERY_LABEL[m]}
+                  {MASTERY_LABEL[m]}
                 </Text>
               </Pressable>
             ))}
@@ -433,7 +444,7 @@ function HistoryRow({
               ]}
               testID={`history-mastery-${topic.id}-${m}`}
             >
-              <Text style={styles.masteryChipEmoji}>{MASTERY_EMOJI[m]}</Text>
+              <Image source={MASTERY_ICONS[m]} style={styles.masteryIconSmall} resizeMode="contain" />
             </Pressable>
           ))}
         </View>
