@@ -22,13 +22,38 @@ export const DIFFICULTY_EMOJI: Record<Difficulty, string> = {
   3: "🔴",
 };
 
+export type Mastery = 0 | 1 | 2 | 3;
+
+export const MASTERY_LABEL: Record<Mastery, string> = {
+  0: "Nada",
+  1: "Regular",
+  2: "Bien",
+  3: "Controlado",
+};
+
+export const MASTERY_EMOJI: Record<Mastery, string> = {
+  0: "🆘",
+  1: "📖",
+  2: "👍",
+  3: "🏆",
+};
+
+export const MASTERY_COLOR: Record<Mastery, string> = {
+  0: "#B8332E",
+  1: "#C8842B",
+  2: "#5F8C3A",
+  3: "#C99A3C",
+};
+
 export type Topic = {
   id: string;
   name: string;
-  weight: number; // weighted random
+  weight: number; // importance / exam relevance (also acts as base probability multiplier)
   enabled: boolean;
   category?: string;
   difficulty: Difficulty;
+  mastery?: Mastery; // 0..3 — manually set by user
+  reviewCount?: number; // total times this topic was studied
   lastStudiedAt?: number;
 };
 

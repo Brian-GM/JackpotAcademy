@@ -115,7 +115,52 @@ GameState con `coins`, `streak`, `lastStudyDate`, `casinoClosedUntil`, `stats`, 
 - Animaciones Lottie de mascota rubber-hose
 - Migración a deployment Android (APK) — depende de build de usuario
 
-## Iteración 3 — Economía rediseñada + Mascota + Notificaciones + Bloqueador nativo
+## Iteración 4 — Rediseño visual completo + Ruleta inteligente + Historial
+
+### Visual rediseñado al estilo "Jackpot Academy" ✅
+- Nueva paleta oscura: `bgDark #0E0A07`, `cream #EFE4C9`, `antiqueGold #C99A3C`, `vintageRed #B8332E`, `vintageGreen #4F6D3A`, `vintagePurple #5C3D6E`
+- **Fondo oscuro** en lugar de papel sepia (con grano sutil)
+- **Botones marquee pill**: cápsula con bordes dorados + bombillas amarillas alrededor + icono circular badge + texto serif. Variantes: red, green, purple, gold, brown/wood, cream
+- **Mascota payaso vintage**: descargada referencia del usuario, recortada en 3 sprites (`mascot-main`, `mascot-cheer`, `mascot-study`) y animada con `react-native-reanimated`. Aparece en Home, Estudio idle, modales de resultado
+- **Tab bar oscura** con borde superior dorado, íconos activos en panel cream con borde gold
+- **Banner del Home** con luces marquee arriba/abajo + "STUDY CASINO" en oro
+- **Menú categoría** estilo botones de la referencia (Estudiar verde / Ruleta púrpura / Jugar rojo / Mis Premios marrón / Ajustes cream)
+
+### Ruleta inteligente ✅
+- Algoritmo de prioridad: **`importancia × (1 − dominio/3) × min(5, 1 + días/3)`**
+  - Temas más importantes + menos dominados + más tiempo sin repasar → mayor probabilidad
+  - Temas controlados + repasados hoy → probabilidad mínima (0.05)
+- La ruleta usa selección ponderada por esta prioridad, no random uniforme
+- Cada tema muestra su **% de probabilidad** en barra visual
+
+### Filtros por categoría ✅
+- Chips activables en pantalla Ruleta con `disabledCategories` persistido en settings
+- Cada categoría muestra el conteo de temas (ej. "Ciencias · 2")
+- Toggle visual ● (activo verde) / ○ (excluido gris)
+- Temas excluidos por categoría aparecen al final del listado en opacidad reducida
+
+### Nivel de dominio por tema ✅
+- 4 niveles: **🆘 Nada** (0) / **📖 Regular** (1) / **👍 Bien** (2) / **🏆 Controlado** (3)
+- Editable en línea desde la ruleta (expandir tema → tap chip de dominio)
+- Editable también desde el historial (chips compactos)
+- `setTopicMastery(id, mastery)` en el store
+
+### Historial de temas ✅
+- Tab "📜 Historial" en la pantalla de Ruleta
+- Lista ordenada por último repaso descendente
+- Cada fila muestra:
+  - Nombre + categoría
+  - Tiempo desde último repaso ("Hace 5 min" / "Hace 3 h" / "Hace 2d" / "Nunca")
+  - Contador de repasos (×N)
+  - Chips de dominio editables
+- Sección separada "🆕 Aún sin estudiar" para temas con `reviewCount = 0`
+- `reviewCount` se incrementa automáticamente en `markTopicStudied`
+
+### Nuevos campos persistidos
+- `Topic.mastery?: 0|1|2|3` (default 1 = Regular)
+- `Topic.reviewCount?: number`
+- `Topic.weight: number` ahora actúa como **importancia/peso para el examen** (sigue editable en Ajustes)
+- `Settings.disabledCategories: string[]`
 
 ### Economía rediseñada ✅
 - Las **fichas se ganan ESTUDIANDO**, no en el casino: `minutos × coinsPerMinute × multiplicador_dificultad`
