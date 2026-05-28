@@ -53,12 +53,34 @@ import {
   DIFFICULTY_LABEL,
   DIFFICULTY_MULTIPLIER,
 } from "@/src/store/types";
-import { cartoonShadow, colors, fonts, inkBorder, radii } from "@/src/theme";
+import { cartoonShadow, colors, fonts, goldBorder, inkBorder, radii } from "@/src/theme";
 
 type SessionState = "idle" | "running" | "paused" | "finished" | "failed";
 type TopicMode = "manual" | "roulette";
 
 const WHEEL_IMG = require("../../assets/images/roulette-wheel.png");
+const RACHA_ICON = require("../../assets/images/racha-icon.png");
+const MASCOT_ESTUDIO = require("../../assets/images/mascot-estudio.png");
+
+// Domination level icons (clown states)
+const DOMINIO_NADA = require("../../assets/images/dominio-nada.png");
+const DOMINIO_REGULAR = require("../../assets/images/dominio-regular.png");
+const DOMINIO_BIEN = require("../../assets/images/dominio-bien.png");
+const DOMINIO_CONTROLADO = require("../../assets/images/dominio-controlado.png");
+
+const DOMINIO_ICONS = {
+  nada: DOMINIO_NADA,
+  regular: DOMINIO_REGULAR,
+  bien: DOMINIO_BIEN,
+  controlado: DOMINIO_CONTROLADO,
+};
+
+const DOMINIO_LABELS = {
+  nada: "Sin dominar",
+  regular: "Regular",
+  bien: "Bien",
+  controlado: "¡Controlado!",
+};
 
 function formatMMSS(sec: number) {
   const m = Math.floor(sec / 60);
@@ -294,17 +316,26 @@ export default function EstudioScreen() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <SignTitle title="SALÓN DE ESTUDIO" subtitle="Pomodoro Vintage" />
 
-          <View style={styles.topRow}>
-            <CoinBadge amount={state.coins} size={28} />
-            <Text style={styles.streakText} testID="study-streak">
-              🔥 {state.streak}
-            </Text>
+          {/* Stats Row - Fichas + Racha */}
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>FICHAS</Text>
+              <CoinBadge amount={state.coins} size={32} />
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>RACHA</Text>
+              <View style={styles.streakRow}>
+                <Image source={RACHA_ICON} style={styles.rachaImage} resizeMode="contain" />
+                <Text style={styles.streakNum} testID="study-streak">{state.streak}</Text>
+              </View>
+              <Text style={styles.streakHint}>{state.streak === 1 ? "día" : "días"}</Text>
+            </View>
           </View>
 
-          {/* Idle: mascot waving */}
+          {/* Idle: mascot with speech */}
           {sessionState === "idle" && (
             <View style={styles.mascotRow}>
-              <CasinoMascot state="wave" size={110} />
+              <Image source={MASCOT_ESTUDIO} style={styles.mascotImage} resizeMode="contain" />
               <View style={styles.speechBubble}>
                 <Text style={styles.speechText}>
                   ¡Elige un tema y empieza a estudiar! Yo cuidaré el casino mientras tanto.
@@ -774,6 +805,65 @@ function RouletteSection({
 
 const styles = StyleSheet.create({
   scroll: { padding: 16, paddingBottom: 32, gap: 14 },
+  statsRow: { flexDirection: "row", gap: 12 },
+  statBox: {
+    flex: 1,
+    backgroundColor: colors.bgPanel,
+    ...goldBorder(2),
+    borderRadius: radii.md,
+    alignItems: "center",
+    paddingVertical: 12,
+    ...cartoonShadow(3),
+  },
+  statLabel: {
+    fontFamily: fonts.subheading,
+    fontSize: 12,
+    color: colors.antiqueGold,
+    letterSpacing: 2,
+    marginBottom: 6,
+    textShadowColor: colors.bgDark,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  streakRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  rachaImage: { width: 36, height: 36 },
+  streakNum: { 
+    fontFamily: fonts.numbers, 
+    fontSize: 26, 
+    color: colors.antiqueGold,
+    textShadowColor: colors.bgDark,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  streakHint: { 
+    fontFamily: fonts.body, 
+    fontSize: 10, 
+    color: colors.cream, 
+    marginTop: 2 
+  },
+  mascotRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  mascotImage: {
+    width: 110,
+    height: 130,
+  },
+  speechBubble: {
+    flex: 1,
+    backgroundColor: colors.cream,
+    ...goldBorder(2),
+    borderRadius: radii.md,
+    padding: 12,
+    ...cartoonShadow(3),
+  },
+  speechText: {
+    fontFamily: fonts.body,
+    color: colors.ink,
+    fontSize: 13,
+    lineHeight: 18,
+  },
   modeSwitchRow: {
     flexDirection: "row",
     gap: 4,
@@ -840,32 +930,6 @@ const styles = StyleSheet.create({
     color: colors.paperHighlight,
     marginTop: 4,
     letterSpacing: 1,
-  },
-  topRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 4,
-  },
-  streakText: { fontFamily: fonts.numbers, fontSize: 18, color: colors.ink },
-  mascotRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  speechBubble: {
-    flex: 1,
-    backgroundColor: colors.paperHighlight,
-    ...inkBorder(3),
-    borderRadius: radii.md,
-    padding: 12,
-    ...cartoonShadow(4),
-  },
-  speechText: {
-    fontFamily: fonts.body,
-    color: colors.ink,
-    fontSize: 13,
-    lineHeight: 18,
   },
   speechTail: {
     position: "absolute",

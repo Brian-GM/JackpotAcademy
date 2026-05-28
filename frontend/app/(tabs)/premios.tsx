@@ -24,9 +24,11 @@ import { VintageCard } from "@/src/components/VintageCard";
 import { useSounds } from "@/src/hooks/use-sounds";
 import { useGameStore } from "@/src/store/game-store";
 import { Rarity, RARITY_ORDER, Reward } from "@/src/store/types";
-import { cartoonShadow, colors, fonts, inkBorder, radii, rarityColor, rarityLabel } from "@/src/theme";
+import { cartoonShadow, colors, fonts, goldBorder, inkBorder, radii, rarityColor, rarityLabel } from "@/src/theme";
 
 const LOCKED = require("../../assets/images/locked-ticket.png");
+const RACHA_ICON = require("../../assets/images/racha-icon.png");
+const MASCOT_PREMIOS = require("../../assets/images/mascot-premios.png");
 
 const EMOJI_OPTIONS = [
   "🤣", "📱", "🎮", "📺", "🎬", "☕", "🍪", "🍫", "🎵", "🍕", "🏃", "💤", "📷", "🎨",
@@ -97,34 +99,48 @@ export default function PremiosScreen() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <SignTitle title="GALERÍA DE PREMIOS" subtitle="Tu dopamina ganada" />
 
-          <View style={styles.topRow}>
-            <CoinBadge amount={state.coins} size={28} />
-            <View style={styles.tabRow}>
-              <Pressable
-                onPress={() => {
-                  play("click");
-                  setTab("inventario");
-                }}
-                style={[styles.tabBtn, tab === "inventario" && styles.tabBtnActive]}
-                testID="tab-inventario"
-              >
-                <Text style={[styles.tabText, tab === "inventario" && styles.tabTextActive]}>
-                  🎟️ Ganados ({totalEarned})
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  play("click");
-                  setTab("catalogo");
-                }}
-                style={[styles.tabBtn, tab === "catalogo" && styles.tabBtnActive]}
-                testID="tab-catalogo"
-              >
-                <Text style={[styles.tabText, tab === "catalogo" && styles.tabTextActive]}>
-                  📋 Catálogo
-                </Text>
-              </Pressable>
+          {/* Stats Row - Fichas + Racha */}
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>FICHAS</Text>
+              <CoinBadge amount={state.coins} size={32} />
             </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>RACHA</Text>
+              <View style={styles.streakRow}>
+                <Image source={RACHA_ICON} style={styles.rachaImage} resizeMode="contain" />
+                <Text style={styles.streakNum}>{state.streak}</Text>
+              </View>
+              <Text style={styles.streakHint}>{state.streak === 1 ? "día" : "días"}</Text>
+            </View>
+          </View>
+
+          {/* Tab switcher */}
+          <View style={styles.tabRow}>
+            <Pressable
+              onPress={() => {
+                play("click");
+                setTab("inventario");
+              }}
+              style={[styles.tabBtn, tab === "inventario" && styles.tabBtnActive]}
+              testID="tab-inventario"
+            >
+              <Text style={[styles.tabText, tab === "inventario" && styles.tabTextActive]}>
+                🎟️ Ganados ({totalEarned})
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                play("click");
+                setTab("catalogo");
+              }}
+              style={[styles.tabBtn, tab === "catalogo" && styles.tabBtnActive]}
+              testID="tab-catalogo"
+            >
+              <Text style={[styles.tabText, tab === "catalogo" && styles.tabTextActive]}>
+                📋 Catálogo
+              </Text>
+            </Pressable>
           </View>
 
           {feedback && (
@@ -141,7 +157,7 @@ export default function PremiosScreen() {
           {tab === "inventario" ? (
             inventory.length === 0 ? (
               <VintageCard style={styles.emptyCard}>
-                <CasinoMascot state="wave" size={120} />
+                <Image source={MASCOT_PREMIOS} style={styles.mascotImage} resizeMode="contain" />
                 <Text style={styles.emptyTitle}>Inventario vacío</Text>
                 <Text style={styles.emptyBody}>
                   Estudia para ganar fichas y prueba suerte en el casino. Cada giro o caja te puede
@@ -462,25 +478,53 @@ function EditModal({
 
 const styles = StyleSheet.create({
   scroll: { padding: 16, paddingBottom: 32, gap: 12 },
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  statsRow: { flexDirection: "row", gap: 12 },
+  statBox: {
+    flex: 1,
+    backgroundColor: colors.bgPanel,
+    ...goldBorder(2),
+    borderRadius: radii.md,
     alignItems: "center",
-    paddingHorizontal: 4,
-    flexWrap: "wrap",
-    gap: 8,
+    paddingVertical: 12,
+    ...cartoonShadow(3),
+  },
+  statLabel: {
+    fontFamily: fonts.subheading,
+    fontSize: 12,
+    color: colors.antiqueGold,
+    letterSpacing: 2,
+    marginBottom: 6,
+    textShadowColor: colors.bgDark,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  streakRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  rachaImage: { width: 36, height: 36 },
+  streakNum: { 
+    fontFamily: fonts.numbers, 
+    fontSize: 26, 
+    color: colors.antiqueGold,
+    textShadowColor: colors.bgDark,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  streakHint: { 
+    fontFamily: fonts.body, 
+    fontSize: 10, 
+    color: colors.cream, 
+    marginTop: 2 
   },
   tabRow: {
     flexDirection: "row",
     gap: 4,
-    ...inkBorder(2),
+    ...goldBorder(2),
     borderRadius: radii.pill,
     overflow: "hidden",
-    backgroundColor: colors.paperHighlight,
+    backgroundColor: colors.bgPanel,
   },
-  tabBtn: { paddingHorizontal: 12, paddingVertical: 6 },
+  tabBtn: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, alignItems: "center" },
   tabBtnActive: { backgroundColor: colors.vintageRed },
-  tabText: { fontFamily: fonts.subheading, fontSize: 11, color: colors.ink, letterSpacing: 1 },
+  tabText: { fontFamily: fonts.subheading, fontSize: 11, color: colors.cream, letterSpacing: 1 },
   tabTextActive: { color: colors.paperHighlight },
   feedback: {
     padding: 12,
@@ -494,6 +538,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   emptyCard: { padding: 22, alignItems: "center" },
+  mascotImage: { width: 120, height: 140 },
   emptyTitle: {
     fontFamily: fonts.heading,
     color: colors.ink,

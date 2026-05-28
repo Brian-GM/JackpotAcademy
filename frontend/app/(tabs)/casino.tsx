@@ -2,7 +2,7 @@
 // Coins come from studying with difficulty multiplier; the slot is pure dopamine.
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import Animated, {
@@ -27,7 +27,10 @@ import { VintageCard } from "@/src/components/VintageCard";
 import { useSounds } from "@/src/hooks/use-sounds";
 import { useGameStore } from "@/src/store/game-store";
 import { Rarity, Reward } from "@/src/store/types";
-import { cartoonShadow, colors, fonts, inkBorder, radii, rarityColor, rarityLabel } from "@/src/theme";
+import { cartoonShadow, colors, fonts, goldBorder, inkBorder, radii, rarityColor, rarityLabel } from "@/src/theme";
+
+// New assets
+const RACHA_ICON = require("../../assets/images/racha-icon.png");
 
 type SymbolDef = { symbol: string; weight: number; rarity: Rarity | "none"; name: string };
 
@@ -351,34 +354,48 @@ export default function CasinoScreen() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <SignTitle title="CASINO DE LA SUERTE" subtitle="¡Gana premios reales!" />
 
-          <View style={styles.topRow}>
-            <CoinBadge amount={state.coins} size={28} />
-            <View style={styles.modeRow}>
-              <Pressable
-                onPress={() => {
-                  play("click");
-                  setMode("slot");
-                }}
-                style={[styles.modeBtn, mode === "slot" && styles.modeBtnActive]}
-                testID="mode-slot"
-              >
-                <Text style={[styles.modeText, mode === "slot" && styles.modeTextActive]}>
-                  🎰 Tragamonedas
-                </Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  play("click");
-                  setMode("boxes");
-                }}
-                style={[styles.modeBtn, mode === "boxes" && styles.modeBtnActive]}
-                testID="mode-boxes"
-              >
-                <Text style={[styles.modeText, mode === "boxes" && styles.modeTextActive]}>
-                  📦 Cajas
-                </Text>
-              </Pressable>
+          {/* Stats Row - Fichas + Racha */}
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>FICHAS</Text>
+              <CoinBadge amount={state.coins} size={32} />
             </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statLabel}>RACHA</Text>
+              <View style={styles.streakRow}>
+                <Image source={RACHA_ICON} style={styles.rachaImage} resizeMode="contain" />
+                <Text style={styles.streakNum}>{state.streak}</Text>
+              </View>
+              <Text style={styles.streakHint}>{state.streak === 1 ? "día" : "días"}</Text>
+            </View>
+          </View>
+
+          {/* Mode switcher */}
+          <View style={styles.modeRow}>
+            <Pressable
+              onPress={() => {
+                play("click");
+                setMode("slot");
+              }}
+              style={[styles.modeBtn, mode === "slot" && styles.modeBtnActive]}
+              testID="mode-slot"
+            >
+              <Text style={[styles.modeText, mode === "slot" && styles.modeTextActive]}>
+                🎰 Tragamonedas
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => {
+                play("click");
+                setMode("boxes");
+              }}
+              style={[styles.modeBtn, mode === "boxes" && styles.modeBtnActive]}
+              testID="mode-boxes"
+            >
+              <Text style={[styles.modeText, mode === "boxes" && styles.modeTextActive]}>
+                🎁 Cajas Misteriosas
+              </Text>
+            </Pressable>
           </View>
 
           {closed && <CasinoClosedBanner remainingSec={remaining} />}
@@ -812,23 +829,53 @@ function SlotResultModal({
 
 const styles = StyleSheet.create({
   scroll: { padding: 16, paddingBottom: 32, gap: 14 },
-  topRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  statsRow: { flexDirection: "row", gap: 12 },
+  statBox: {
+    flex: 1,
+    backgroundColor: colors.bgPanel,
+    ...goldBorder(2),
+    borderRadius: radii.md,
     alignItems: "center",
-    paddingHorizontal: 4,
+    paddingVertical: 12,
+    ...cartoonShadow(3),
+  },
+  statLabel: {
+    fontFamily: fonts.subheading,
+    fontSize: 12,
+    color: colors.antiqueGold,
+    letterSpacing: 2,
+    marginBottom: 6,
+    textShadowColor: colors.bgDark,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  streakRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  rachaImage: { width: 36, height: 36 },
+  streakNum: { 
+    fontFamily: fonts.numbers, 
+    fontSize: 26, 
+    color: colors.antiqueGold,
+    textShadowColor: colors.bgDark,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  streakHint: { 
+    fontFamily: fonts.body, 
+    fontSize: 10, 
+    color: colors.cream, 
+    marginTop: 2 
   },
   modeRow: {
     flexDirection: "row",
     gap: 4,
-    ...inkBorder(2),
+    ...goldBorder(2),
     borderRadius: radii.pill,
     overflow: "hidden",
-    backgroundColor: colors.paperHighlight,
+    backgroundColor: colors.bgPanel,
   },
-  modeBtn: { paddingHorizontal: 10, paddingVertical: 6 },
+  modeBtn: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, alignItems: "center" },
   modeBtnActive: { backgroundColor: colors.vintageRed },
-  modeText: { fontFamily: fonts.subheading, fontSize: 11, color: colors.ink, letterSpacing: 1 },
+  modeText: { fontFamily: fonts.subheading, fontSize: 11, color: colors.cream, letterSpacing: 1 },
   modeTextActive: { color: colors.paperHighlight },
   cabinet: {
     ...inkBorder(4),
