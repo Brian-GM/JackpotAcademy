@@ -28,11 +28,7 @@ import {
 import { useGameStore } from "@/src/store/game-store";
 import {
   BlockedApp,
-  Difficulty,
-  DIFFICULTY_EMOJI,
-  DIFFICULTY_LABEL,
   Settings,
-  Topic,
 } from "@/src/store/types";
 import { colors, fonts, inkBorder, radii } from "@/src/theme";
 
@@ -296,19 +292,6 @@ export default function AjustesScreen() {
         </ScrollView>
       </SafeAreaView>
 
-      <TopicModal
-        topic={editingTopic}
-        onClose={() => setEditingTopic(null)}
-        onSave={(t) => {
-          upsertTopic(t);
-          setEditingTopic(null);
-        }}
-        onDelete={(id) => {
-          deleteTopic(id);
-          setEditingTopic(null);
-        }}
-      />
-
       <AppPickerModal
         mode={showAppPicker}
         existing={
@@ -404,106 +387,6 @@ function AppRow({ app, onRemove }: { app: BlockedApp; onRemove: () => void }) {
         <FontAwesome5 name="times" color={colors.vintageRed} size={14} />
       </Pressable>
     </View>
-  );
-}
-
-function TopicModal({
-  topic,
-  onClose,
-  onSave,
-  onDelete,
-}: {
-  topic: Topic | null;
-  onClose: () => void;
-  onSave: (t: Topic) => void;
-  onDelete: (id: string) => void;
-}) {
-  const [draft, setDraft] = useState<Topic>({
-    id: "",
-    name: "",
-    weight: 1,
-    enabled: true,
-    category: "",
-    difficulty: 2,
-  });
-
-  useEffect(() => {
-    if (topic) setDraft({ ...topic });
-  }, [topic]);
-
-  if (!topic) return null;
-
-  return (
-    <Modal visible={!!topic} transparent animationType="slide">
-      <View style={styles.confirmBackdrop}>
-        <VintageCard tint={colors.paperHighlight} style={styles.topicModal}>
-          <Text style={styles.sectionTitle}>{draft.id ? "Editar tema" : "Nuevo tema"}</Text>
-          <Text style={styles.fieldLabel}>Nombre</Text>
-          <TextInput
-            value={draft.name}
-            onChangeText={(t) => setDraft({ ...draft, name: t })}
-            style={styles.input}
-            testID="topic-name-input"
-          />
-          <Text style={styles.fieldLabel}>Categoría</Text>
-          <TextInput
-            value={draft.category ?? ""}
-            onChangeText={(t) => setDraft({ ...draft, category: t })}
-            style={styles.input}
-          />
-          <Text style={styles.fieldLabel}>Dificultad (multiplica fichas)</Text>
-          <View style={styles.diffRow}>
-            {([1, 2, 3] as Difficulty[]).map((d) => (
-              <Pressable
-                key={d}
-                onPress={() => setDraft({ ...draft, difficulty: d })}
-                style={[styles.diffChip, draft.difficulty === d && styles.diffChipActive]}
-                testID={`topic-diff-${d}`}
-              >
-                <Text style={styles.diffEmoji}>{DIFFICULTY_EMOJI[d]}</Text>
-                <Text
-                  style={[
-                    styles.diffLabel,
-                    draft.difficulty === d && { color: colors.paperHighlight },
-                  ]}
-                >
-                  {DIFFICULTY_LABEL[d]}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <Text style={styles.fieldLabel}>Peso (probabilidad en la ruleta)</Text>
-          <TextInput
-            value={String(draft.weight)}
-            onChangeText={(t) =>
-              setDraft({ ...draft, weight: Math.max(0.1, parseFloat(t) || 0.1) })
-            }
-            keyboardType="decimal-pad"
-            style={styles.input}
-          />
-          <View style={{ flexDirection: "row", gap: 10, marginTop: 14 }}>
-            <VintageButton
-              label="GUARDAR"
-              variant="red"
-              onPress={() => draft.name.trim() && onSave(draft)}
-              style={{ flex: 1 }}
-              testID="save-topic"
-            />
-            <VintageButton label="Cancelar" variant="cream" onPress={onClose} style={{ flex: 1 }} />
-          </View>
-          {!!draft.id && (
-            <Pressable
-              onPress={() => onDelete(draft.id)}
-              style={{ alignItems: "center", paddingVertical: 12 }}
-            >
-              <Text style={{ color: colors.vintageRed, fontFamily: fonts.body }}>
-                Eliminar tema
-              </Text>
-            </Pressable>
-          )}
-        </VintageCard>
-      </View>
-    </Modal>
   );
 }
 
@@ -785,21 +668,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.sm,
     ...inkBorder(2),
   },
-  diffRow: { flexDirection: "row", gap: 8, marginTop: 4 },
-  diffChip: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    paddingVertical: 8,
-    ...inkBorder(2),
-    borderRadius: radii.sm,
-    backgroundColor: colors.paperPrimary,
-  },
-  diffChipActive: { backgroundColor: colors.vintageRed },
-  diffEmoji: { fontSize: 16 },
-  diffLabel: { fontFamily: fonts.subheading, color: colors.ink, fontSize: 12, letterSpacing: 1 },
   footer: {
     fontFamily: fonts.body,
     color: colors.inkSoft,
@@ -816,7 +684,6 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   confirmCard: { padding: 22, minWidth: 280 },
-  topicModal: { padding: 18, minWidth: 300 },
   pickerModal: { padding: 18, width: "100%", maxHeight: "85%" },
   installedList: { maxHeight: 200, marginTop: 6 },
   installedRow: {
