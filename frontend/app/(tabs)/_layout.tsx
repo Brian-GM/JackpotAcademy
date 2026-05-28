@@ -1,15 +1,29 @@
 import { Tabs } from "expo-router";
-import { FontAwesome5 } from "@expo/vector-icons";
-import { StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { cartoonShadow, colors, fonts, goldBorder } from "@/src/theme";
 
-type TabIconProps = { name: string; color: string; focused: boolean };
+// Custom navigation icons
+const NAV_HOME = require("../../assets/images/nav-home.png");
+const NAV_ESTUDIO = require("../../assets/images/nav-estudio.png");
+const NAV_TEMAS = require("../../assets/images/nav-temas.png");
+const NAV_CASINO = require("../../assets/images/nav-casino.png");
+const NAV_PREMIOS = require("../../assets/images/nav-premios.png");
+const NAV_AJUSTES = require("../../assets/images/nav-ajustes.png");
 
-function TabIcon({ name, color, focused }: TabIconProps) {
+type TabIconProps = { 
+  source: any; 
+  focused: boolean;
+};
+
+function TabIcon({ source, focused }: TabIconProps) {
   return (
     <View style={[styles.iconWrap, focused && styles.iconFocused]}>
-      <FontAwesome5 name={name} size={focused ? 22 : 18} color={color} solid />
+      <Image 
+        source={source} 
+        style={[styles.iconImage, focused && styles.iconImageFocused]} 
+        resizeMode="contain" 
+      />
     </View>
   );
 }
@@ -34,14 +48,16 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.antiqueGold,
         tabBarInactiveTintColor: colors.cream,
         tabBarShowLabel: true,
+        tabBarScrollEnabled: true,
+        tabBarItemStyle: styles.tabBarItem,
       }}
     >
       <Tabs.Screen
         name="inicio"
         options={{
           tabBarLabel: ({ focused }) => <TabLabel label="Inicio" focused={focused} />,
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="home" color={color} focused={focused} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon source={NAV_HOME} focused={focused} />
           ),
         }}
       />
@@ -49,8 +65,8 @@ export default function TabLayout() {
         name="estudio"
         options={{
           tabBarLabel: ({ focused }) => <TabLabel label="Estudio" focused={focused} />,
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="book" color={color} focused={focused} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon source={NAV_ESTUDIO} focused={focused} />
           ),
         }}
       />
@@ -58,8 +74,8 @@ export default function TabLayout() {
         name="temas"
         options={{
           tabBarLabel: ({ focused }) => <TabLabel label="Temas" focused={focused} />,
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="list-ul" color={color} focused={focused} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon source={NAV_TEMAS} focused={focused} />
           ),
         }}
       />
@@ -67,8 +83,8 @@ export default function TabLayout() {
         name="casino"
         options={{
           tabBarLabel: ({ focused }) => <TabLabel label="Casino" focused={focused} />,
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="dice" color={color} focused={focused} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon source={NAV_CASINO} focused={focused} />
           ),
         }}
       />
@@ -76,8 +92,8 @@ export default function TabLayout() {
         name="premios"
         options={{
           tabBarLabel: ({ focused }) => <TabLabel label="Premios" focused={focused} />,
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="gift" color={color} focused={focused} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon source={NAV_PREMIOS} focused={focused} />
           ),
         }}
       />
@@ -85,8 +101,8 @@ export default function TabLayout() {
         name="ajustes"
         options={{
           tabBarLabel: ({ focused }) => <TabLabel label="Ajustes" focused={focused} />,
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name="cog" color={color} focused={focused} />
+          tabBarIcon: ({ focused }) => (
+            <TabIcon source={NAV_AJUSTES} focused={focused} />
           ),
         }}
       />
@@ -97,27 +113,40 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: colors.bgDarker,
-    height: 70,
+    height: 75,
     paddingTop: 6,
-    paddingBottom: 8,
+    paddingBottom: 10,
     ...cartoonShadow(0),
     borderTopWidth: 2,
     borderTopColor: colors.antiqueGold,
   },
+  tabBarItem: {
+    minWidth: 70,
+    paddingHorizontal: 4,
+  },
   iconWrap: {
-    width: 36,
-    height: 36,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 18,
+    borderRadius: 22,
   },
   iconFocused: {
     backgroundColor: colors.bgPanel,
     ...goldBorder(2),
   },
+  iconImage: {
+    width: 34,
+    height: 34,
+  },
+  iconImageFocused: {
+    width: 38,
+    height: 38,
+  },
   label: {
     fontFamily: fonts.subheading,
-    fontSize: 10,
+    fontSize: 9,
     letterSpacing: 1,
+    marginTop: 2,
   },
 });

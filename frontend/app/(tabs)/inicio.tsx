@@ -1,12 +1,11 @@
-// HOME — Jackpot Academy style hub with category buttons and mascot greeting.
+// HOME — JackpotAcademy style hub with category buttons and mascot greeting.
 
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { CasinoClosedBanner } from "@/src/components/CasinoClosedBanner";
-import { CasinoMascot } from "@/src/components/CasinoMascot";
 import { CoinBadge } from "@/src/components/CoinBadge";
 import { MarqueeLights } from "@/src/components/MarqueeLights";
 import { PaperBackground } from "@/src/components/PaperBackground";
@@ -14,6 +13,11 @@ import { VintageButton } from "@/src/components/VintageButton";
 import { useSounds } from "@/src/hooks/use-sounds";
 import { useGameStore } from "@/src/store/game-store";
 import { cartoonShadow, colors, fonts, goldBorder, radii } from "@/src/theme";
+
+// New assets
+const LOGO = require("../../assets/images/jackpot-academy-logo.png");
+const MASCOT = require("../../assets/images/mascot-inicio.png");
+const RACHA_ICON = require("../../assets/images/racha-icon.png");
 
 export default function InicioScreen() {
   const router = useRouter();
@@ -29,7 +33,7 @@ export default function InicioScreen() {
   const closed = isCasinoClosed();
   const remaining = casinoClosedRemainingSec();
 
-  const goTo = (path: "/(tabs)/estudio" | "/(tabs)/casino" | "/(tabs)/ruleta" | "/(tabs)/premios" | "/(tabs)/ajustes") => {
+  const goTo = (path: "/(tabs)/estudio" | "/(tabs)/casino" | "/(tabs)/ruleta" | "/(tabs)/premios" | "/(tabs)/ajustes" | "/(tabs)/temas") => {
     play("lever");
     router.push(path);
   };
@@ -38,15 +42,12 @@ export default function InicioScreen() {
     <PaperBackground>
       <SafeAreaView style={{ flex: 1 }} edges={["top"]}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          {/* Banner with title + lights */}
+          {/* Logo Banner */}
           <View style={styles.banner}>
             <View style={styles.bannerLights}>
               <MarqueeLights count={14} size={7} speed={1100} />
             </View>
-            <Text style={styles.bannerTitle} numberOfLines={1} adjustsFontSizeToFit>
-              STUDY CASINO
-            </Text>
-            <Text style={styles.bannerSubtitle}>· APRENDE · GANA · ESTUDIA ·</Text>
+            <Image source={LOGO} style={styles.logoImage} resizeMode="contain" />
             <View style={styles.bannerLights}>
               <MarqueeLights count={14} size={7} speed={1100} />
             </View>
@@ -61,7 +62,7 @@ export default function InicioScreen() {
             <View style={styles.statBox} testID="streak-card">
               <Text style={styles.statLabel}>RACHA</Text>
               <View style={styles.streakRow}>
-                <Text style={styles.streakFlame}>🔥</Text>
+                <Image source={RACHA_ICON} style={styles.rachaImage} resizeMode="contain" />
                 <Text style={styles.streakNum} testID="streak-count">
                   {state.streak}
                 </Text>
@@ -74,7 +75,7 @@ export default function InicioScreen() {
 
           {/* Mascot greet */}
           <View style={styles.mascotRow}>
-            <CasinoMascot state="wave" size={130} />
+            <Image source={MASCOT} style={styles.mascotImage} resizeMode="contain" />
             <View style={styles.speechBubble}>
               <Text style={styles.speechText}>
                 ¡Bienvenido al Casino! Estudia para ganar fichas y prueba suerte en mis máquinas.
@@ -126,9 +127,9 @@ export default function InicioScreen() {
             />
           </View>
 
-          {/* Stats footer */}
+          {/* Stats footer - Cartilla del ludópata */}
           <View style={styles.statsCard}>
-            <Text style={styles.statsCardTitle}>📜 Pergamino del jugador</Text>
+            <Text style={styles.statsCardTitle}>🎰 Cartilla del ludópata</Text>
             <View style={styles.statsGrid}>
               <Stat label="Min estudiados" value={state.stats.totalStudyMinutes} />
               <Stat label="Sesiones ✓" value={state.stats.sessionsCompleted} />
@@ -168,28 +169,15 @@ const styles = StyleSheet.create({
     ...cartoonShadow(4),
   },
   bannerLights: { width: "90%", paddingVertical: 4 },
-  bannerTitle: {
-    fontFamily: fonts.heading,
-    fontSize: 34,
-    color: colors.antiqueGold,
-    letterSpacing: 4,
-    marginTop: 4,
-    textShadowColor: colors.vintageRedDark,
-    textShadowOffset: { width: 2, height: 2 },
-    textShadowRadius: 0,
-  },
-  bannerSubtitle: {
-    fontFamily: fonts.subheading,
-    fontSize: 12,
-    color: colors.cream,
-    letterSpacing: 4,
-    marginTop: 2,
-    marginBottom: 4,
+  logoImage: {
+    width: "85%",
+    height: 140,
+    marginVertical: 8,
   },
   statsRow: { flexDirection: "row", gap: 12 },
   statBox: {
     flex: 1,
-    backgroundColor: colors.cream,
+    backgroundColor: colors.bgPanel,
     ...goldBorder(2),
     borderRadius: radii.md,
     alignItems: "center",
@@ -199,15 +187,34 @@ const styles = StyleSheet.create({
   statLabel: {
     fontFamily: fonts.subheading,
     fontSize: 12,
-    color: colors.inkSoft,
+    color: colors.antiqueGold,
     letterSpacing: 2,
     marginBottom: 6,
+    textShadowColor: colors.bgDark,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   streakRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  streakFlame: { fontSize: 28 },
-  streakNum: { fontFamily: fonts.numbers, fontSize: 28, color: colors.ink },
-  streakHint: { fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft, marginTop: 2 },
+  rachaImage: { width: 40, height: 40 },
+  streakNum: { 
+    fontFamily: fonts.numbers, 
+    fontSize: 28, 
+    color: colors.antiqueGold,
+    textShadowColor: colors.bgDark,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  streakHint: { 
+    fontFamily: fonts.body, 
+    fontSize: 11, 
+    color: colors.cream, 
+    marginTop: 2 
+  },
   mascotRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  mascotImage: {
+    width: 130,
+    height: 160,
+  },
   speechBubble: {
     flex: 1,
     backgroundColor: colors.cream,
