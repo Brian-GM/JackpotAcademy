@@ -11,7 +11,7 @@ import Animated, {
 
 import { colors, fonts } from "@/src/theme";
 
-const COIN = require("../../assets/images/ficha-new.png");
+const COIN = require("../../assets/images/ficha-coin.png");
 
 type Props = {
   amount: number;
