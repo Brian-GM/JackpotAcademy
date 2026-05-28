@@ -109,7 +109,7 @@ export default function InicioScreen() {
               testID="quick-temas-button"
             />
             <VintageButton
-              label="JUGAR · TRAGAMONEDAS"
+              label="CASINO"
               variant="red"
               imageSource={NAV_CASINO}
               size="lg"
@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   streakRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  rachaImage: { width: 52, height: 52 },
+  rachaImage: { width: 36, height: 36 },
   streakNum: { 
     fontFamily: fonts.numbers, 
     fontSize: 28, 
