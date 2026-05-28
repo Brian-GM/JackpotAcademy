@@ -202,7 +202,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   streakRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  rachaImage: { width: 36, height: 36 },
+  rachaImage: { width: 52, height: 52 },
   streakNum: { 
     fontFamily: fonts.numbers, 
     fontSize: 28, 
