@@ -19,12 +19,12 @@ const LOGO = require("../../assets/images/jackpot-academy-logo.png");
 const MASCOT = require("../../assets/images/mascot-inicio.png");
 const RACHA_ICON = require("../../assets/images/racha-icon.png");
 
-// Navbar icons for menu buttons
-const NAV_ESTUDIO = require("../../assets/images/nav-estudio.png");
-const NAV_TEMAS = require("../../assets/images/nav-temas.png");
-const NAV_CASINO = require("../../assets/images/nav-casino.png");
-const NAV_PREMIOS = require("../../assets/images/nav-premios.png");
-const NAV_AJUSTES = require("../../assets/images/nav-ajustes.png");
+// Navbar icons for menu buttons (clean square single-icon versions)
+const NAV_ESTUDIO = require("../../assets/new-assets/menu-icons/estudiar.png");
+const NAV_TEMAS = require("../../assets/new-assets/menu-icons/temas.png");
+const NAV_CASINO = require("../../assets/new-assets/menu-icons/casino.png");
+const NAV_PREMIOS = require("../../assets/new-assets/menu-icons/premios.png");
+const NAV_AJUSTES = require("../../assets/new-assets/menu-icons/ajustes.png");
 
 export default function InicioScreen() {
   const router = useRouter();
@@ -128,7 +128,7 @@ export default function InicioScreen() {
               label="AJUSTES"
               variant="cream"
               imageSource={NAV_AJUSTES}
-              size="md"
+              size="lg"
               onPress={() => goTo("/(tabs)/ajustes")}
               testID="quick-ajustes-button"
             />
