@@ -69,9 +69,8 @@ const ECONOMY_FIELDS: FieldConfig[] = [
 ];
 
 export default function AjustesScreen() {
-  const { state, updateSettings, upsertTopic, deleteTopic, addBlockedApp, removeBlockedApp, addAllowedApp, removeAllowedApp, resetAll } = useGameStore();
+  const { state, updateSettings, addBlockedApp, removeBlockedApp, addAllowedApp, removeAllowedApp, resetAll } = useGameStore();
   useAppBlockerSync();
-  const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [showAppPicker, setShowAppPicker] = useState<"block" | "allow" | null>(null);
   const [accessibilityOn, setAccessibilityOn] = useState(false);
@@ -274,44 +273,6 @@ export default function AjustesScreen() {
                   />
                 </View>
                 <Text style={styles.fieldHelp}>{f.help}</Text>
-              </View>
-            ))}
-          </VintageCard>
-
-          {/* Topics CRUD */}
-          <VintageCard style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>📚 Temas de estudio</Text>
-              <VintageButton
-                label="+ Tema"
-                variant="gold"
-                size="sm"
-                onPress={() =>
-                  setEditingTopic({
-                    id: "",
-                    name: "",
-                    weight: 1,
-                    enabled: true,
-                    category: "",
-                    difficulty: 2,
-                  })
-                }
-                testID="add-topic-button"
-              />
-            </View>
-            {state.topics.map((t) => (
-              <View key={t.id} style={styles.topicRow}>
-                <Text style={styles.topicDiff}>{DIFFICULTY_EMOJI[t.difficulty]}</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.topicName}>{t.name}</Text>
-                  <Text style={styles.fieldHelp}>
-                    {DIFFICULTY_LABEL[t.difficulty]} · {t.category ?? "Sin categoría"} · peso ×
-                    {t.weight}
-                  </Text>
-                </View>
-                <Pressable onPress={() => setEditingTopic(t)} style={styles.iconBtn} testID={`edit-topic-${t.id}`}>
-                  <FontAwesome5 name="pen" color={colors.ink} size={14} />
-                </Pressable>
               </View>
             ))}
           </VintageCard>

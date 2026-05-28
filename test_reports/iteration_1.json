@@ -31,6 +31,6 @@
   "seed_data_creation": "Created one custom reward 'Test reward' (cost=5) via the + Nuevo modal during testing; remains in AsyncStorage.",
   "retest_needed": false,
   "should_main_agent_self_test": true,
-  "context_for_next_testing_agent": "All core MVP flows verified working on https://study-casino.preview.emergentagent.com at mobile viewport 390x844. Only deprecation warnings remain. Note: a previously-abandoned study session leaves the casino in a 30-min closed state in AsyncStorage; future testers may need to clear localStorage or wait for cooldown before re-testing spin flows. testIDs are all wired correctly.",
+  "context_for_next_testing_agent": "All core MVP flows verified working on https://roulette-manual.preview.emergentagent.com at mobile viewport 390x844. Only deprecation warnings remain. Note: a previously-abandoned study session leaves the casino in a 30-min closed state in AsyncStorage; future testers may need to clear localStorage or wait for cooldown before re-testing spin flows. testIDs are all wired correctly.",
   "rca_of_issue": "N/A – no failures."
 }
