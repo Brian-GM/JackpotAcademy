@@ -58,7 +58,10 @@ const styles = StyleSheet.create({
   },
   amount: {
     fontFamily: fonts.numbers,
-    color: colors.ink,
+    color: colors.antiqueGold,
     letterSpacing: 1.5,
+    textShadowColor: colors.bgDark,
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
 });

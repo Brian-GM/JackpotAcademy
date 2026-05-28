@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AppState,
   AppStateStatus,
-  Image,
   Modal,
   Pressable,
   ScrollView,
@@ -14,6 +13,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { FontAwesome5 } from "@expo/vector-icons";
@@ -52,6 +52,7 @@ import {
   DIFFICULTY_EMOJI,
   DIFFICULTY_LABEL,
   DIFFICULTY_MULTIPLIER,
+  Mastery,
 } from "@/src/store/types";
 import { cartoonShadow, colors, fonts, goldBorder, inkBorder, radii } from "@/src/theme";
 
@@ -68,18 +69,18 @@ const DOMINIO_REGULAR = require("../../assets/images/dominio-regular.png");
 const DOMINIO_BIEN = require("../../assets/images/dominio-bien.png");
 const DOMINIO_CONTROLADO = require("../../assets/images/dominio-controlado.png");
 
-const DOMINIO_ICONS = {
-  nada: DOMINIO_NADA,
-  regular: DOMINIO_REGULAR,
-  bien: DOMINIO_BIEN,
-  controlado: DOMINIO_CONTROLADO,
+const DOMINIO_ICONS: Record<Mastery, any> = {
+  0: DOMINIO_NADA,
+  1: DOMINIO_REGULAR,
+  2: DOMINIO_BIEN,
+  3: DOMINIO_CONTROLADO,
 };
 
-const DOMINIO_LABELS = {
-  nada: "Sin dominar",
-  regular: "Regular",
-  bien: "Bien",
-  controlado: "¡Controlado!",
+const DOMINIO_LABELS: Record<Mastery, string> = {
+  0: "Sin dominar",
+  1: "Regular",
+  2: "Bien",
+  3: "¡Controlado!",
 };
 
 function formatMMSS(sec: number) {
@@ -397,6 +398,7 @@ export default function EstudioScreen() {
                       .filter((t) => t.enabled)
                       .map((t) => {
                         const active = state.currentTopicId === t.id;
+                        const mastery = (t.mastery ?? 1) as Mastery;
                         return (
                           <Pressable
                             key={t.id}
@@ -407,18 +409,28 @@ export default function EstudioScreen() {
                             style={[styles.topicChip, active && styles.topicChipActive]}
                             testID={`select-topic-${t.id}`}
                           >
-                            <Text style={styles.topicChipDiff}>
-                              {DIFFICULTY_EMOJI[t.difficulty]}
-                            </Text>
-                            <Text
-                              style={[
-                                styles.topicChipText,
-                                active && styles.topicChipTextActive,
-                              ]}
-                              numberOfLines={1}
-                            >
-                              {t.name}
-                            </Text>
+                            <View style={styles.topicMasteryIconContainer}>
+                              <Image 
+                                source={DOMINIO_ICONS[mastery]} 
+                                style={styles.topicMasteryIcon} 
+                                contentFit="cover"
+                                contentPosition="top"
+                              />
+                            </View>
+                            <View style={styles.topicTextCol}>
+                              <Text
+                                style={[
+                                  styles.topicChipText,
+                                  active && styles.topicChipTextActive,
+                                ]}
+                                numberOfLines={1}
+                              >
+                                {t.name}
+                              </Text>
+                              <Text style={styles.topicChipDiff}>
+                                {DIFFICULTY_EMOJI[t.difficulty]} {DOMINIO_LABELS[mastery]}
+                              </Text>
+                            </View>
                           </Pressable>
                         );
                       })}
@@ -1010,26 +1022,49 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginBottom: 10,
   },
-  topicGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  topicGrid: { flexDirection: "column", gap: 8 },
   topicChip: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    paddingHorizontal: 10,
+    gap: 12,
+    paddingHorizontal: 14,
     paddingVertical: 8,
     ...inkBorder(2),
-    borderRadius: radii.pill,
+    borderRadius: radii.md,
     backgroundColor: colors.paperHighlight,
-    maxWidth: "48%",
+    width: "100%",
   },
-  topicChipActive: { backgroundColor: colors.antiqueGold },
-  topicChipDiff: { fontSize: 14 },
+  topicChipActive: { 
+    backgroundColor: colors.antiqueGold,
+    borderColor: colors.brassDark,
+  },
+  topicMasteryIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 8,
+    overflow: "hidden",
+    backgroundColor: colors.paperHighlight,
+    borderWidth: 2,
+    borderColor: colors.ink,
+  },
+  topicMasteryIcon: {
+    width: 56,
+    height: 62,
+  },
+  topicTextCol: {
+    flex: 1,
+    gap: 2,
+  },
+  topicChipDiff: { 
+    fontSize: 10, 
+    fontFamily: fonts.body,
+    color: colors.inkSoft,
+  },
   topicChipText: {
     fontFamily: fonts.subheading,
     color: colors.ink,
-    fontSize: 13,
-    letterSpacing: 1,
-    maxWidth: 110,
+    fontSize: 14,
+    letterSpacing: 0.5,
   },
   topicChipTextActive: { color: colors.ink },
   diffRow: {

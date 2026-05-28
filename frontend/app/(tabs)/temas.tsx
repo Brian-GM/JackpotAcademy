@@ -28,6 +28,7 @@ import {
   DIFFICULTY_LABEL,
   Mastery,
   MASTERY_COLOR,
+  MASTERY_EMOJI,
   MASTERY_LABEL,
   Topic,
 } from "@/src/store/types";

@@ -32,16 +32,25 @@ import { cartoonShadow, colors, fonts, goldBorder, inkBorder, radii, rarityColor
 // New assets
 const RACHA_ICON = require("../../assets/images/racha-icon.png");
 
-type SymbolDef = { symbol: string; weight: number; rarity: Rarity | "none"; name: string };
+// Slot symbol images
+const SLOT_CHERRY = require("../../assets/images/slot-cherry.png");
+const SLOT_LEMON = require("../../assets/images/slot-lemon.png");
+const SLOT_BELL = require("../../assets/images/slot-bell.png");
+const SLOT_CLOVER = require("../../assets/images/slot-clover.png");
+const SLOT_STAR = require("../../assets/images/slot-star.png");
+const SLOT_DIAMOND = require("../../assets/images/slot-diamond.png");
+const SLOT_SEVEN = require("../../assets/images/slot-seven.png");
+
+type SymbolDef = { symbol: string; image: any; weight: number; rarity: Rarity | "none"; name: string };
 
 const SYMBOLS: SymbolDef[] = [
-  { symbol: "🍒", weight: 30, rarity: "comun", name: "CEREZA" },
-  { symbol: "🍋", weight: 25, rarity: "comun", name: "LIMÓN" },
-  { symbol: "🔔", weight: 20, rarity: "raro", name: "CAMPANA" },
-  { symbol: "🍀", weight: 15, rarity: "raro", name: "TRÉBOL" },
-  { symbol: "⭐", weight: 7, rarity: "epico", name: "ESTRELLA" },
-  { symbol: "💎", weight: 2, rarity: "epico", name: "DIAMANTE" },
-  { symbol: "7️⃣", weight: 1, rarity: "legendario", name: "JACKPOT" },
+  { symbol: "🍒", image: SLOT_CHERRY, weight: 30, rarity: "comun", name: "CEREZA" },
+  { symbol: "🍋", image: SLOT_LEMON, weight: 25, rarity: "comun", name: "LIMÓN" },
+  { symbol: "🔔", image: SLOT_BELL, weight: 20, rarity: "raro", name: "CAMPANA" },
+  { symbol: "🍀", image: SLOT_CLOVER, weight: 15, rarity: "raro", name: "TRÉBOL" },
+  { symbol: "⭐", image: SLOT_STAR, weight: 7, rarity: "epico", name: "ESTRELLA" },
+  { symbol: "💎", image: SLOT_DIAMOND, weight: 2, rarity: "epico", name: "DIAMANTE" },
+  { symbol: "7️⃣", image: SLOT_SEVEN, weight: 1, rarity: "legendario", name: "JACKPOT" },
 ];
 
 const TOTAL_WEIGHT = SYMBOLS.reduce((s, x) => s + x.weight, 0);
@@ -102,14 +111,14 @@ function pickRarityForBox(tier: BoxTier): Rarity {
   return "comun";
 }
 
-function Reel({ symbol, spinning }: { symbol: string; spinning: boolean }) {
-  const [displayed, setDisplayed] = useState(symbol);
+function Reel({ symbolDef, spinning }: { symbolDef: SymbolDef; spinning: boolean }) {
+  const [displayed, setDisplayed] = useState(symbolDef);
   const rotate = useSharedValue(0);
 
   useEffect(() => {
     if (spinning) {
       const id = setInterval(() => {
-        setDisplayed(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)].symbol);
+        setDisplayed(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
       }, 80);
       rotate.value = withRepeat(withTiming(360, { duration: 600 }), -1, false);
       return () => {
@@ -117,9 +126,9 @@ function Reel({ symbol, spinning }: { symbol: string; spinning: boolean }) {
         rotate.value = 0;
       };
     }
-    setDisplayed(symbol);
+    setDisplayed(symbolDef);
     rotate.value = withSpring(0, { damping: 6, stiffness: 200 });
-  }, [spinning, symbol, rotate]);
+  }, [spinning, symbolDef, rotate]);
 
   const animStyle = useAnimatedStyle(() => ({
     transform: spinning ? [{ translateY: (rotate.value % 60) - 30 }] : [{ translateY: 0 }],
@@ -128,7 +137,9 @@ function Reel({ symbol, spinning }: { symbol: string; spinning: boolean }) {
   return (
     <View style={styles.reelOuter}>
       <View style={styles.reelInner}>
-        <Animated.Text style={[styles.symbol, animStyle]}>{displayed}</Animated.Text>
+        <Animated.View style={animStyle}>
+          <Image source={displayed.image} style={styles.symbolImage} resizeMode="contain" />
+        </Animated.View>
       </View>
     </View>
   );
@@ -156,10 +167,10 @@ export default function CasinoScreen() {
   } = useGameStore();
   const { play } = useSounds();
   const [mode, setMode] = useState<Mode>("slot");
-  const [reels, setReels] = useState<string[]>([
-    SYMBOLS[0].symbol,
-    SYMBOLS[0].symbol,
-    SYMBOLS[0].symbol,
+  const [reels, setReels] = useState<SymbolDef[]>([
+    SYMBOLS[0],
+    SYMBOLS[0],
+    SYMBOLS[0],
   ]);
   const [spinning, setSpinning] = useState<boolean[]>([false, false, false]);
   const [slotResult, setSlotResult] = useState<SlotResult | null>(null);
@@ -188,14 +199,14 @@ export default function CasinoScreen() {
     const isJackpot = Math.random() < jackpotProb;
     if (isJackpot) {
       const j = SYMBOLS[SYMBOLS.length - 1];
-      return { reels: [j.symbol, j.symbol, j.symbol], match: j, count: 3 };
+      return { reels: [j, j, j], match: j, count: 3 };
     }
     const isTriple = Math.random() < 0.08;
     if (isTriple) {
       const winner = pickWeighted();
       const safeWinner = winner.symbol === "7️⃣" ? SYMBOLS[5] : winner;
       return {
-        reels: [safeWinner.symbol, safeWinner.symbol, safeWinner.symbol],
+        reels: [safeWinner, safeWinner, safeWinner],
         match: safeWinner,
         count: 3,
       };
@@ -204,17 +215,17 @@ export default function CasinoScreen() {
     if (nearMissRoll) {
       const winner = pickWeighted();
       const adj = nearMiss(winner);
-      return { reels: [winner.symbol, winner.symbol, adj.symbol], match: winner, count: 2 };
+      return { reels: [winner, winner, adj], match: winner, count: 2 };
     }
-    const r1 = pickWeighted().symbol;
-    const r2 = pickWeighted().symbol;
-    const r3 = pickWeighted().symbol;
+    const r1 = pickWeighted();
+    const r2 = pickWeighted();
+    const r3 = pickWeighted();
     let count = 1;
-    if (r1 === r2 && r2 === r3) count = 3;
-    else if (r1 === r2 || r2 === r3) count = 2;
+    if (r1.symbol === r2.symbol && r2.symbol === r3.symbol) count = 3;
+    else if (r1.symbol === r2.symbol || r2.symbol === r3.symbol) count = 2;
     return {
       reels: [r1, r2, r3],
-      match: SYMBOLS.find((s) => s.symbol === r2) ?? SYMBOLS[0],
+      match: r2,
       count,
     };
   }, [state.settings.jackpotProbability]);
@@ -411,7 +422,7 @@ export default function CasinoScreen() {
                 </View>
                 <View style={styles.reels}>
                   {reels.map((s, i) => (
-                    <Reel key={i} symbol={s} spinning={spinning[i]} />
+                    <Reel key={i} symbolDef={s} spinning={spinning[i]} />
                   ))}
                 </View>
                 <View style={styles.cabinetBottom}>
@@ -459,9 +470,11 @@ export default function CasinoScreen() {
                 </Text>
                 {SYMBOLS.map((s) => (
                   <View key={s.symbol} style={styles.payRow}>
-                    <Text style={styles.paySymbol}>
-                      {s.symbol} {s.symbol} {s.symbol}
-                    </Text>
+                    <View style={styles.paySymbols}>
+                      <Image source={s.image} style={styles.paySymbolImg} resizeMode="contain" />
+                      <Image source={s.image} style={styles.paySymbolImg} resizeMode="contain" />
+                      <Image source={s.image} style={styles.paySymbolImg} resizeMode="contain" />
+                    </View>
                     <View style={styles.payRight}>
                       <Text style={styles.payText}>{s.name}</Text>
                       <View
@@ -921,6 +934,7 @@ const styles = StyleSheet.create({
   },
   reelInner: { flex: 1, alignItems: "center", justifyContent: "center" },
   symbol: { fontSize: 70, lineHeight: 78 },
+  symbolImage: { width: 70, height: 70 },
   cabinetBottom: { alignItems: "center", marginTop: 8 },
   payline: { color: colors.antiqueGold, fontFamily: fonts.body, letterSpacing: 1 },
   costRow: {
@@ -970,6 +984,8 @@ const styles = StyleSheet.create({
     borderBottomColor: "rgba(44,30,22,0.15)",
   },
   paySymbol: { fontSize: 22 },
+  paySymbols: { flexDirection: "row", alignItems: "center", gap: 2 },
+  paySymbolImg: { width: 28, height: 28 },
   payRight: { flexDirection: "row", alignItems: "center", gap: 8 },
   payText: { fontFamily: fonts.body, color: colors.ink, fontSize: 13 },
   rarityPill: {
