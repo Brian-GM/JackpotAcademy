@@ -19,6 +19,13 @@ const LOGO = require("../../assets/images/jackpot-academy-logo.png");
 const MASCOT = require("../../assets/images/mascot-inicio.png");
 const RACHA_ICON = require("../../assets/images/racha-icon.png");
 
+// Navbar icons for menu buttons
+const NAV_ESTUDIO = require("../../assets/images/nav-estudio.png");
+const NAV_TEMAS = require("../../assets/images/nav-temas.png");
+const NAV_CASINO = require("../../assets/images/nav-casino.png");
+const NAV_PREMIOS = require("../../assets/images/nav-premios.png");
+const NAV_AJUSTES = require("../../assets/images/nav-ajustes.png");
+
 export default function InicioScreen() {
   const router = useRouter();
   const { state, isCasinoClosed, casinoClosedRemainingSec } = useGameStore();
@@ -88,7 +95,7 @@ export default function InicioScreen() {
             <VintageButton
               label="ESTUDIAR"
               variant="green"
-              icon="book"
+              imageSource={NAV_ESTUDIO}
               size="lg"
               onPress={() => goTo("/(tabs)/estudio")}
               testID="start-study-button"
@@ -96,7 +103,7 @@ export default function InicioScreen() {
             <VintageButton
               label="MIS TEMAS"
               variant="purple"
-              icon="list-ul"
+              imageSource={NAV_TEMAS}
               size="lg"
               onPress={() => goTo("/(tabs)/temas")}
               testID="quick-temas-button"
@@ -104,7 +111,7 @@ export default function InicioScreen() {
             <VintageButton
               label="JUGAR · TRAGAMONEDAS"
               variant="red"
-              icon="dice"
+              imageSource={NAV_CASINO}
               size="lg"
               onPress={() => goTo("/(tabs)/casino")}
               testID="quick-spin-button"
@@ -112,7 +119,7 @@ export default function InicioScreen() {
             <VintageButton
               label="MIS PREMIOS"
               variant="brown"
-              icon="gift"
+              imageSource={NAV_PREMIOS}
               size="lg"
               onPress={() => goTo("/(tabs)/premios")}
               testID="quick-premios-button"
@@ -120,7 +127,7 @@ export default function InicioScreen() {
             <VintageButton
               label="AJUSTES"
               variant="cream"
-              icon="cog"
+              imageSource={NAV_AJUSTES}
               size="md"
               onPress={() => goTo("/(tabs)/ajustes")}
               testID="quick-ajustes-button"
@@ -195,7 +202,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   streakRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  rachaImage: { width: 40, height: 40 },
+  rachaImage: { width: 36, height: 36 },
   streakNum: { 
     fontFamily: fonts.numbers, 
     fontSize: 28, 

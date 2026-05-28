@@ -113,40 +113,40 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   tabBar: {
     backgroundColor: colors.bgDarker,
-    height: 75,
-    paddingTop: 6,
-    paddingBottom: 10,
+    height: 80,
+    paddingTop: 4,
+    paddingBottom: 8,
     ...cartoonShadow(0),
     borderTopWidth: 2,
     borderTopColor: colors.antiqueGold,
   },
   tabBarItem: {
-    minWidth: 70,
-    paddingHorizontal: 4,
+    minWidth: 58,
+    paddingHorizontal: 2,
   },
   iconWrap: {
-    width: 52,
-    height: 52,
+    width: 50,
+    height: 50,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 26,
+    borderRadius: 25,
   },
   iconFocused: {
     backgroundColor: colors.bgPanel,
     ...goldBorder(2),
   },
   iconImage: {
-    width: 44,
-    height: 44,
+    width: 46,
+    height: 46,
   },
   iconImageFocused: {
-    width: 48,
-    height: 48,
+    width: 50,
+    height: 50,
   },
   label: {
     fontFamily: fonts.subheading,
     fontSize: 9,
     letterSpacing: 1,
-    marginTop: 2,
+    marginTop: 1,
   },
 });

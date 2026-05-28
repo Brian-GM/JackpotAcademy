@@ -1039,17 +1039,17 @@ const styles = StyleSheet.create({
     borderColor: colors.brassDark,
   },
   topicMasteryIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 8,
+    width: 44,
+    height: 44,
+    borderRadius: 6,
     overflow: "hidden",
     backgroundColor: colors.paperHighlight,
     borderWidth: 2,
     borderColor: colors.ink,
   },
   topicMasteryIcon: {
-    width: 56,
-    height: 62,
+    width: 44,
+    height: 48,
   },
   topicTextCol: {
     flex: 1,

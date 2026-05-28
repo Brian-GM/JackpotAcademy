@@ -2,7 +2,7 @@
 // Gold outer ring with chasing/static light bulbs around the perimeter,
 // solid colored interior, bold white serif label, optional icon badge on left.
 
-import { Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
+import { Image, ImageSourcePropType, Pressable, StyleSheet, Text, View, ViewStyle } from "react-native";
 import { ReactNode, useRef } from "react";
 import Animated, {
   useSharedValue,
@@ -26,6 +26,7 @@ type Props = {
   style?: ViewStyle;
   testID?: string;
   icon?: string;
+  imageSource?: ImageSourcePropType;
 };
 
 const VARIANTS: Record<Variant, { bg: string; text: string; iconBg: string }> = {
@@ -65,6 +66,7 @@ export function VintageButton({
   style,
   testID,
   icon,
+  imageSource,
 }: Props) {
   const scale = useSharedValue(1);
   const lastPress = useRef(0);
@@ -128,7 +130,12 @@ export function VintageButton({
         </View>
 
         <View style={[styles.innerRow, padding]}>
-          {!!icon && (
+          {!!imageSource && (
+            <View style={[styles.iconBadge, { backgroundColor: palette.iconBg }]}>
+              <Image source={imageSource} style={{ width: iconSize + 8, height: iconSize + 8 }} resizeMode="contain" />
+            </View>
+          )}
+          {!!icon && !imageSource && (
             <View style={[styles.iconBadge, { backgroundColor: palette.iconBg }]}>
               <FontAwesome5 name={icon} size={iconSize} color={palette.text} solid />
             </View>
@@ -143,7 +150,7 @@ export function VintageButton({
               {label}
             </Text>
           )}
-          {!!icon && <View style={{ width: iconSize + 16 }} />}
+          {(!!icon || !!imageSource) && <View style={{ width: iconSize + 16 }} />}
         </View>
       </Pressable>
     </Animated.View>
