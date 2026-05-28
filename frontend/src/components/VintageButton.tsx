@@ -205,7 +205,6 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    ...goldBorder(2),
     alignItems: "center",
     justifyContent: "center",
   },
