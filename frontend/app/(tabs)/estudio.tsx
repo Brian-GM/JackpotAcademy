@@ -269,6 +269,21 @@ export default function EstudioScreen() {
 
   useEffect(() => {
     if (sessionState !== "running") return;
+    
+    // Sincronizar con el timer nativo periódicamente para evitar desync
+    const syncWithNative = () => {
+      if (state.settings.appBlockerEnabled && isNativeTimerRunning()) {
+        const nativeRemaining = getNativeRemainingTime();
+        if (nativeRemaining > 0) {
+          // Solo sincronizar si la diferencia es mayor a 0.5 segundos
+          setRemaining(prev => {
+            const diff = Math.abs(prev - nativeRemaining);
+            return diff >= 1 ? nativeRemaining : prev;
+          });
+        }
+      }
+    };
+    
     tickRef.current = setInterval(() => {
       setRemaining((r) => {
         if (r <= 1) {
@@ -278,11 +293,16 @@ export default function EstudioScreen() {
         return r - 1;
       });
     }, 1000);
+    
+    // Sincronizar con el nativo cada 5 segundos para corregir drift
+    const syncInterval = setInterval(syncWithNative, 5000);
+    
     return () => {
       if (tickRef.current) clearInterval(tickRef.current);
       tickRef.current = null;
+      clearInterval(syncInterval);
     };
-  }, [sessionState, handleComplete]);
+  }, [sessionState, handleComplete, state.settings.appBlockerEnabled]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (next: AppStateStatus) => {
@@ -373,7 +393,6 @@ export default function EstudioScreen() {
   };
 
   const totalSec = duration * 60;
-  const progress = sessionState === "idle" ? 0 : 1 - remaining / totalSec;
   const isLive = sessionState === "running" || sessionState === "paused";
   const diff = selectedTopic?.difficulty ?? 2;
   const expectedBase = Math.floor(duration * state.settings.coinsPerMinute * DIFFICULTY_MULTIPLIER[diff]);
@@ -1040,39 +1059,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     letterSpacing: 2,
     marginBottom: 6,
-  },
-  gaugeOuter: {
-    width: "100%",
-    height: 24,
-    backgroundColor: colors.bgDark,
-    borderRadius: 12,
-    borderWidth: 3,
-    borderColor: colors.ink,
-    overflow: "hidden",
-    marginTop: 10,
-    marginBottom: 4,
-  },
-  gaugeTrack: {
-    flex: 1,
-    backgroundColor: colors.paperPrimary,
-    borderRadius: 9,
-    overflow: "hidden",
-    margin: 2,
-  },
-  gaugeFill: { 
-    height: "100%",
-    backgroundColor: colors.vintageRed,
-    borderRadius: 7,
-    minWidth: 4,
-  },
-  gaugeShine: {
-    position: "absolute",
-    top: 5,
-    left: 6,
-    right: 6,
-    height: 4,
-    backgroundColor: "rgba(255,255,255,0.35)",
-    borderRadius: 2,
   },
   metaRow: {
     flexDirection: "row",

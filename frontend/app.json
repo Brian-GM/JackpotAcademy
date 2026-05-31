@@ -61,7 +61,16 @@
           "color": "#A62C2B"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-navigation-bar",
+        {
+          "position": "absolute",
+          "visibility": "hidden",
+          "behavior": "overlay-swipe",
+          "legacyVisible": "hidden"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -2,6 +2,8 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import { StatusBar } from "expo-status-bar";
+import { Platform } from "react-native";
+import * as NavigationBar from "expo-navigation-bar";
 
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { useVintageFonts } from "@/src/hooks/use-vintage-fonts";
@@ -14,14 +16,36 @@ import { useBackgroundMusic } from "@/src/hooks/use-background-music";
 // the family is registered — which throws on Android Expo Go.
 SplashScreen.preventAutoHideAsync();
 
+// Función para configurar modo inmersivo en Android
+async function setupImmersiveMode() {
+  if (Platform.OS === "android") {
+    try {
+      // Ocultar la barra de navegación del sistema
+      await NavigationBar.setVisibilityAsync("hidden");
+      // Configurar comportamiento: se muestra al hacer swipe desde el borde
+      await NavigationBar.setBehaviorAsync("overlay-swipe");
+      // Hacer la barra translúcida cuando aparece
+      await NavigationBar.setBackgroundColorAsync("#00000000");
+    } catch (error) {
+      // Silenciar error en caso de que no esté disponible
+      console.log("NavigationBar setup skipped:", error);
+    }
+  }
+}
+
 // Componente interno que maneja la música de fondo
 function AppContent() {
   // Inicializa la música de fondo automáticamente
   useBackgroundMusic();
   
+  // Configurar modo inmersivo
+  useEffect(() => {
+    setupImmersiveMode();
+  }, []);
+  
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style="light" hidden={false} translucent backgroundColor="transparent" />
       <Stack screenOptions={{ headerShown: false }} />
     </>
   );

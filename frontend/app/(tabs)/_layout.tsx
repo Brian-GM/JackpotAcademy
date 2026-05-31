@@ -5,6 +5,7 @@
  * 
  * Este archivo controla la barra de navegación inferior de la aplicación.
  * Define las pestañas (tabs) y sus iconos personalizados.
+ * El soporte para swipe está integrado en PaperBackground.
  * 
  * =============================================================================
  */

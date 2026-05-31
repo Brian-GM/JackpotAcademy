@@ -223,15 +223,19 @@ export default function AjustesScreen() {
                   }
                   testID="toggle-blocker"
                 />
-                <View style={styles.accessRow}>
-                  <Text style={styles.fieldLabel}>
-                    Permiso de Accesibilidad: {accessibilityOn ? "✅ activo" : "❌ desactivado"}
-                  </Text>
+                <View style={styles.accessRowWrap}>
+                  <View style={styles.accessStatus}>
+                    <Text style={styles.accessStatusIcon}>{accessibilityOn ? "✅" : "❌"}</Text>
+                    <Text style={styles.accessStatusText}>
+                      Accesibilidad: {accessibilityOn ? "activo" : "desactivado"}
+                    </Text>
+                  </View>
                   <VintageButton
                     label="Abrir Ajustes"
                     variant="gold"
                     size="sm"
                     onPress={() => openAccessibilitySettings()}
+                    style={{ minWidth: 120 }}
                   />
                 </View>
                 <ToggleRow
@@ -639,6 +643,28 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   warningBody: { fontFamily: fonts.body, color: colors.ink, fontSize: 12, lineHeight: 17 },
+  accessRowWrap: {
+    flexDirection: "column",
+    gap: 10,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(44,30,22,0.15)",
+  },
+  accessStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  accessStatusIcon: {
+    fontSize: 18,
+  },
+  accessStatusText: {
+    fontFamily: fonts.subheading,
+    fontSize: 14,
+    color: colors.ink,
+    letterSpacing: 1,
+    flex: 1,
+  },
   accessRow: {
     flexDirection: "row",
     alignItems: "center",
