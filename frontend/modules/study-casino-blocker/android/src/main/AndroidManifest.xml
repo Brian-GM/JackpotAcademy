@@ -3,6 +3,11 @@
 
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
         tools:ignore="QueryAllPackagesPermission" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application>
         <service
@@ -16,6 +21,26 @@
             <meta-data
                 android:name="android.accessibilityservice"
                 android:resource="@xml/study_casino_accessibility_config" />
+        </service>
+
+        <service
+            android:name=".PomodoroTimerService"
+            android:label="Pomodoro Timer"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="pomodoro_timer" />
+        </service>
+
+        <service
+            android:name=".BlockedAppOverlayService"
+            android:label="Blocked App Overlay"
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="blocked_app_overlay" />
         </service>
     </application>
 </manifest>

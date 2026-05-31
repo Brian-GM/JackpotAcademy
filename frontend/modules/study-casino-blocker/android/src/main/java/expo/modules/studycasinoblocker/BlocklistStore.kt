@@ -14,6 +14,8 @@ object BlocklistStore {
     private const val KEY_ALLOWLIST = "allowlist"
     private const val KEY_STRICT = "strict_mode"
     private const val KEY_ACTIVE = "active"
+    private const val KEY_END_TIME = "pomodoro_end_time"
+    private const val KEY_TOTAL_DURATION = "pomodoro_total_duration"
 
     private fun prefs(ctx: Context): SharedPreferences =
         ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -45,4 +47,24 @@ object BlocklistStore {
 
     fun isActive(ctx: Context): Boolean =
         prefs(ctx).getBoolean(KEY_ACTIVE, false)
+
+    fun setPomodoroTimer(ctx: Context, endTimeMillis: Long, totalDurationSeconds: Int) {
+        prefs(ctx).edit()
+            .putLong(KEY_END_TIME, endTimeMillis)
+            .putInt(KEY_TOTAL_DURATION, totalDurationSeconds)
+            .apply()
+    }
+
+    fun getPomodoroEndTime(ctx: Context): Long =
+        prefs(ctx).getLong(KEY_END_TIME, 0L)
+
+    fun getTotalDuration(ctx: Context): Int =
+        prefs(ctx).getInt(KEY_TOTAL_DURATION, 25 * 60)
+
+    fun clearPomodoroTimer(ctx: Context) {
+        prefs(ctx).edit()
+            .remove(KEY_END_TIME)
+            .remove(KEY_TOTAL_DURATION)
+            .apply()
+    }
 }

@@ -2,13 +2,14 @@ package expo.modules.studycasinoblocker
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Intent
+import android.os.Build
 import android.os.SystemClock
+import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
-import android.widget.Toast
 
 /**
- * Listens for foreground app changes via AccessibilityService and bounces the user
- * back to the launcher when they open a blocked app during an active study session.
+ * Listens for foreground app changes via AccessibilityService and shows
+ * an overlay when they open a blocked app during an active study session.
  *
  * The user must MANUALLY enable this service in Android's Accessibility Settings —
  * we cannot grant it programmatically.
@@ -24,9 +25,19 @@ class BlockerAccessibilityService : AccessibilityService() {
         // Ignore system UI and our own app
         if (pkg == "com.android.systemui" || pkg.startsWith("android")) return
         if (pkg == applicationContext.packageName) return
+        // Ignore the overlay service
+        if (pkg == "expo.modules.studycasinoblocker") return
 
         val active = BlocklistStore.isActive(this)
         if (!active) return
+
+        // Check if timer has expired
+        val endTime = BlocklistStore.getPomodoroEndTime(this)
+        if (endTime > 0 && System.currentTimeMillis() > endTime) {
+            BlocklistStore.setActive(this, false)
+            BlocklistStore.clearPomodoroTimer(this)
+            return
+        }
 
         val strict = BlocklistStore.isStrictMode(this)
         val shouldBlock = if (strict) {
@@ -39,29 +50,54 @@ class BlockerAccessibilityService : AccessibilityService() {
 
         if (!shouldBlock) return
 
-        // Debounce: avoid bouncing the same app multiple times within 1.5s
+        // Debounce: avoid bouncing the same app multiple times within 6s (overlay duration + buffer)
         val now = SystemClock.elapsedRealtime()
-        if (pkg == lastBouncedPkg && (now - lastBouncedAt) < 1500) return
+        if (pkg == lastBouncedPkg && (now - lastBouncedAt) < 6000) return
         lastBouncedPkg = pkg
         lastBouncedAt = now
 
-        try {
-            Toast.makeText(
-                this,
-                "📚 Estás estudiando — vuelve a Study Casino",
-                Toast.LENGTH_LONG
-            ).show()
-        } catch (_: Throwable) {
-            // Toast can fail on some OEMs/themes — best effort.
+        // Check if we can draw overlays
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            // Fall back to just launching our app
+            launchOurApp()
+            return
         }
 
-        // Launch our own app to pull the user back
+        // Show the overlay
+        showBlockedOverlay(pkg)
+    }
+
+    private fun showBlockedOverlay(blockedPkg: String) {
+        val appName = try {
+            val appInfo = packageManager.getApplicationInfo(blockedPkg, 0)
+            packageManager.getApplicationLabel(appInfo).toString()
+        } catch (_: Exception) {
+            blockedPkg
+        }
+
+        val intent = Intent(this, BlockedAppOverlayService::class.java).apply {
+            putExtra(BlockedAppOverlayService.EXTRA_APP_NAME, appName)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+        } catch (_: Throwable) {
+            // Fallback to just launching our app
+            launchOurApp()
+        }
+    }
+
+    private fun launchOurApp() {
         val launch = packageManager.getLaunchIntentForPackage(applicationContext.packageName)
         if (launch != null) {
             launch.addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or
-                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP
+                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                        Intent.FLAG_ACTIVITY_SINGLE_TOP
             )
             try {
                 startActivity(launch)

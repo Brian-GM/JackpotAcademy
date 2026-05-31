@@ -2,6 +2,7 @@ package expo.modules.studycasinoblocker
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -33,6 +34,33 @@ class StudyCasinoBlockerModule : Module() {
             Unit
         }
 
+        Function("canDrawOverlays") {
+            val ctx = appContext.reactContext ?: return@Function false
+            return@Function if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Settings.canDrawOverlays(ctx)
+            } else {
+                true
+            }
+        }
+
+        Function("openOverlaySettings") {
+            val ctx = appContext.reactContext ?: return@Function Unit
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                    android.net.Uri.parse("package:${ctx.packageName}")
+                ).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                try {
+                    ctx.startActivity(intent)
+                } catch (_: Throwable) {
+                    // ignore — best effort
+                }
+            }
+            Unit
+        }
+
         Function("setBlocklist") { packages: List<String> ->
             val ctx = appContext.reactContext ?: return@Function Unit
             BlocklistStore.setBlocklist(ctx, packages)
@@ -60,6 +88,53 @@ class StudyCasinoBlockerModule : Module() {
         Function("isActive") {
             val ctx = appContext.reactContext ?: return@Function false
             return@Function BlocklistStore.isActive(ctx)
+        }
+
+        // Start the pomodoro timer service with countdown notification
+        Function("startPomodoroTimer") { durationSeconds: Int ->
+            val ctx = appContext.reactContext ?: return@Function Unit
+            val intent = Intent(ctx, PomodoroTimerService::class.java).apply {
+                action = PomodoroTimerService.ACTION_START
+                putExtra(PomodoroTimerService.EXTRA_DURATION_SECONDS, durationSeconds)
+            }
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    ctx.startForegroundService(intent)
+                } else {
+                    ctx.startService(intent)
+                }
+            } catch (_: Throwable) {
+                // best effort
+            }
+            Unit
+        }
+
+        // Stop the pomodoro timer service
+        Function("stopPomodoroTimer") {
+            val ctx = appContext.reactContext ?: return@Function Unit
+            val intent = Intent(ctx, PomodoroTimerService::class.java).apply {
+                action = PomodoroTimerService.ACTION_STOP
+            }
+            try {
+                ctx.startService(intent)
+            } catch (_: Throwable) {
+                // best effort
+            }
+            Unit
+        }
+
+        // Get remaining time in seconds
+        Function("getRemainingTime") {
+            val ctx = appContext.reactContext ?: return@Function 0
+            val endTime = BlocklistStore.getPomodoroEndTime(ctx)
+            if (endTime <= 0) return@Function 0
+            val remaining = ((endTime - System.currentTimeMillis()) / 1000).toInt()
+            return@Function if (remaining > 0) remaining else 0
+        }
+
+        // Check if timer service is running
+        Function("isTimerRunning") {
+            return@Function PomodoroTimerService.isRunning()
         }
 
         AsyncFunction("getInstalledApps") {

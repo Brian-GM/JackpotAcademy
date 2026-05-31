@@ -20,14 +20,43 @@ export function useAppBlockerSync() {
   }, [state.settings.blockedApps, state.settings.allowedApps, state.settings.blockerStrictMode]);
 }
 
-export function startBlockingSession() {
+export function startBlockingSession(durationSeconds?: number) {
   if (!StudyCasinoBlocker.isAvailable) return;
   StudyCasinoBlocker.setActive(true);
+  // Start the native timer service with countdown notification
+  if (durationSeconds && durationSeconds > 0) {
+    StudyCasinoBlocker.startPomodoroTimer(durationSeconds);
+  }
 }
 
 export function stopBlockingSession() {
   if (!StudyCasinoBlocker.isAvailable) return;
   StudyCasinoBlocker.setActive(false);
+  StudyCasinoBlocker.stopPomodoroTimer();
+}
+
+// Get remaining time from native timer (useful for syncing on app resume)
+export function getNativeRemainingTime(): number {
+  if (!StudyCasinoBlocker.isAvailable) return 0;
+  return StudyCasinoBlocker.getRemainingTime();
+}
+
+// Check if native timer is running
+export function isNativeTimerRunning(): boolean {
+  if (!StudyCasinoBlocker.isAvailable) return false;
+  return StudyCasinoBlocker.isTimerRunning();
+}
+
+// Check if overlay permission is granted
+export function canDrawOverlays(): boolean {
+  if (!StudyCasinoBlocker.isAvailable) return false;
+  return StudyCasinoBlocker.canDrawOverlays();
+}
+
+// Open overlay settings
+export function openOverlaySettings() {
+  if (!StudyCasinoBlocker.isAvailable) return;
+  StudyCasinoBlocker.openOverlaySettings();
 }
 
 export const isBlockerAvailable = StudyCasinoBlocker.isAvailable;

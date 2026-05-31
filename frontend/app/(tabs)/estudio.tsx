@@ -327,9 +327,9 @@ export default function EstudioScreen() {
         });
       }
     }
-    // Native blocker
+    // Native blocker with timer duration
     if (state.settings.appBlockerEnabled) {
-      startBlockingSession();
+      startBlockingSession(duration * 60); // Pass duration in seconds
     }
   };
 
