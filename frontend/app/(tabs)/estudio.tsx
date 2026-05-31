@@ -92,6 +92,8 @@ import {
   isBlockerAvailable,
   startBlockingSession,
   stopBlockingSession,
+  getNativeRemainingTime,
+  isNativeTimerRunning,
 } from "@/src/hooks/use-blocker";
 
 import { useGameStore } from "@/src/store/game-store";
@@ -295,10 +297,20 @@ export default function EstudioScreen() {
           clearTimeout(bgTimerRef.current);
           bgTimerRef.current = null;
         }
+        // Sync with native timer when returning to foreground
+        if (state.settings.appBlockerEnabled && isNativeTimerRunning()) {
+          const nativeRemaining = getNativeRemainingTime();
+          if (nativeRemaining > 0) {
+            setRemaining(nativeRemaining);
+          } else if (nativeRemaining === 0 && remainingRef.current > 5) {
+            // Timer finished while in background
+            setTimeout(handleComplete, 0);
+          }
+        }
       }
     });
     return () => sub.remove();
-  }, [handleFail, state.settings.appBlurFailSec]);
+  }, [handleFail, handleComplete, state.settings.appBlurFailSec, state.settings.appBlockerEnabled]);
 
   const start = async () => {
     if (highRisk) {
@@ -1035,21 +1047,30 @@ const styles = StyleSheet.create({
   },
   gaugeOuter: {
     width: "100%",
-    height: 18,
-    ...inkBorder(2),
+    height: 22,
+    ...inkBorder(3),
     backgroundColor: colors.paperPrimary,
-    borderRadius: 9,
+    borderRadius: 11,
     overflow: "hidden",
-    marginTop: 4,
+    marginTop: 8,
+    position: "relative",
   },
-  gaugeFill: { height: "100%", backgroundColor: colors.vintageRed },
+  gaugeFill: { 
+    position: "absolute",
+    left: 0,
+    top: 0,
+    bottom: 0,
+    backgroundColor: colors.vintageRed,
+    borderRadius: 8,
+  },
   gaugeShine: {
     position: "absolute",
-    top: 2,
-    left: 0,
-    right: 0,
-    height: 4,
-    backgroundColor: "rgba(255,255,255,0.25)",
+    top: 3,
+    left: 3,
+    right: 3,
+    height: 5,
+    backgroundColor: "rgba(255,255,255,0.3)",
+    borderRadius: 3,
   },
   metaRow: {
     flexDirection: "row",
