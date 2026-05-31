@@ -42,6 +42,11 @@ const BOX_IMAGES: Record<BoxTier, any> = {
   oro: require("../../assets/images/caja-oro.png"),
 };
 
+// Caras para los popups de resultado
+const CARA_TRISTE = require("../../assets/images/cara-triste.png");
+const CARA_REGULAR = require("../../assets/images/cara-regular.png");
+const CARA_FELIZ = require("../../assets/images/cara-feliz.png");
+
 // Slot symbol images
 const SLOT_CHERRY = require("../../assets/images/slot-cherry.png");
 const SLOT_LEMON = require("../../assets/images/slot-lemon.png");
@@ -688,10 +693,8 @@ function BoxResultModal({
 
   useEffect(() => {
     if (result) {
-      scale.value = withSequence(
-        withSpring(1.3, { damping: 5, stiffness: 180 }),
-        withSpring(1, { damping: 7, stiffness: 200 }),
-      );
+      // Animación más suave - sin rebote exagerado
+      scale.value = withSpring(1, { damping: 15, stiffness: 120 });
     } else {
       scale.value = 0;
     }
@@ -701,8 +704,19 @@ function BoxResultModal({
 
   if (!result) return null;
   const isLegend = result.rarity === "legendario";
+  const hasReward = !!result.reward;
   const bg = isLegend ? colors.antiqueGold : rarityColor(result.rarity);
   const fg = isLegend ? colors.ink : colors.paperHighlight;
+  
+  // Determinar qué cara mostrar
+  let caraImg = CARA_TRISTE; // Sin premio = triste
+  if (isLegend) {
+    caraImg = CARA_FELIZ; // Legendario = muy feliz
+  } else if (hasReward) {
+    caraImg = CARA_FELIZ; // Ganó premio = feliz
+  } else {
+    caraImg = CARA_REGULAR; // Caja vacía = regular
+  }
 
   return (
     <Modal visible={!!result} transparent animationType="fade">
@@ -714,7 +728,7 @@ function BoxResultModal({
         )}
         <Animated.View style={animStyle}>
           <VintageCard tint={bg} style={styles.modalCard}>
-            <CasinoMascot state={isLegend ? "cheer" : "wave"} size={120} />
+            <Image source={caraImg} style={styles.resultFaceImg} resizeMode="contain" />
             <Text style={[styles.modalEyebrow, { color: fg }]}>
               {rarityLabel(result.rarity)}
             </Text>
@@ -766,10 +780,8 @@ function SlotResultModal({
 
   useEffect(() => {
     if (visible) {
-      scale.value = withSequence(
-        withSpring(1.2, { damping: 5, stiffness: 180 }),
-        withSpring(1, { damping: 7, stiffness: 200 }),
-      );
+      // Animación más suave - sin rebote exagerado
+      scale.value = withSpring(1, { damping: 15, stiffness: 120 });
     } else {
       scale.value = 0;
     }
@@ -786,23 +798,23 @@ function SlotResultModal({
   let title = "Sin suerte...";
   let bg = colors.wornWood;
   let body = `Gastaste ${spinCost} fichas`;
-  let mascotState: "cheer" | "sad" | "wave" = "sad";
+  let caraImg = CARA_TRISTE; // Cara triste para perder
 
   if (isJackpot) {
     title = "¡¡¡JACKPOT!!!";
     bg = colors.antiqueGold;
     body = "¡Premio legendario desbloqueado!";
-    mascotState = "cheer";
+    caraImg = CARA_FELIZ;
   } else if (isWin) {
     title = "¡PREMIO!";
     bg = rarityColor(result.symbol.rarity as Rarity);
     body = "Tu nuevo premio está en la pestaña Premios";
-    mascotState = "cheer";
+    caraImg = CARA_FELIZ;
   } else if (isNearMiss) {
     title = "¡Casi lo logras!";
     bg = colors.warningAmber;
     body = `Dos iguales · +${result.consolation} 🪙 de consolación`;
-    mascotState = "wave";
+    caraImg = CARA_REGULAR; // Cara regular para consolación
   }
 
   return (
@@ -815,7 +827,7 @@ function SlotResultModal({
         )}
         <Animated.View style={animStyle}>
           <VintageCard tint={bg} style={styles.modalCard}>
-            <CasinoMascot state={mascotState} size={120} />
+            <Image source={caraImg} style={styles.resultFaceImg} resizeMode="contain" />
             <Text
               style={[
                 styles.modalTitle,
@@ -1060,6 +1072,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   modalCard: { padding: 20, alignItems: "center", minWidth: 300, ...cartoonShadow(6) },
+  resultFaceImg: { width: 120, height: 120, marginBottom: 8 },
   modalEmoji: { fontSize: 56, marginTop: 4 },
   modalEyebrow: {
     fontFamily: fonts.subheading,
