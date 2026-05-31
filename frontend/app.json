@@ -21,7 +21,9 @@
         "foregroundImage": "./assets/images/app-icon.png",
         "backgroundColor": "#000"
       },
-      "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "pan",
+      "navigationBarColor": "#000000",
+      "navigationBarHidden": true,
       "permissions": [
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.WAKE_LOCK",

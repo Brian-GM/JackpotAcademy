@@ -595,12 +595,6 @@ export default function EstudioScreen() {
                 {DIFFICULTY_EMOJI[diff]} {selectedTopic.name}
               </Text>
             )}
-            <View style={styles.gaugeOuter}>
-              <View style={styles.gaugeTrack}>
-                <View style={[styles.gaugeFill, { width: `${Math.max(2, Math.min(100, progress * 100))}%` }]} />
-              </View>
-              <View style={styles.gaugeShine} pointerEvents="none" />
-            </View>
             <View style={styles.metaRow}>
               <View style={styles.metaBox}>
                 <Text style={styles.metaValue}>{pauses}</Text>
