@@ -1,6 +1,46 @@
-// POMODORO STUDY SCREEN — vintage timer with topic selector, difficulty multiplier,
-// app-blur failure detection, persistent notification, mascot reactions, and native blocker.
+/**
+ * =============================================================================
+ * estudio.tsx - PANTALLA DE SESIÓN DE ESTUDIO (POMODORO VINTAGE)
+ * =============================================================================
+ * 
+ * Pantalla principal de estudio con temporizador Pomodoro, selección de temas
+ * y sistema de recompensas por completar sesiones.
+ * 
+ * CARACTERÍSTICAS:
+ * - Temporizador Pomodoro configurable (5-60 minutos)
+ * - Selección manual de tema o ruleta aleatoria
+ * - Multiplicador de dificultad (más dificultad = más fichas)
+ * - Detección de abandono de app (si sales de la app, pierdes)
+ * - Notificaciones push durante la sesión
+ * - Mascota con reacciones según el progreso
+ * - Animación de lluvia de monedas al completar
+ * 
+ * ESTADOS DE LA SESIÓN (SessionState):
+ * - "idle": Sin sesión activa, listo para empezar
+ * - "running": Sesión en curso, el temporizador corre
+ * - "paused": Sesión pausada (ojo: pausar mucho puede fallar)
+ * - "finished": Sesión completada exitosamente
+ * - "failed": Sesión fallida (saliste de la app)
+ * 
+ * MODOS DE SELECCIÓN DE TEMA (TopicMode):
+ * - "manual": Eliges el tema tú mismo
+ * - "roulette": La ruleta elige un tema aleatorio
+ * 
+ * SISTEMA DE RECOMPENSAS:
+ * - Fichas base según duración (5min = 5 fichas, etc.)
+ * - Multiplicador por dificultad (Fácil x0.5, Normal x1, Difícil x2.2)
+ * - Racha de días consecutivos aumenta bonus
+ * 
+ * PARA MODIFICAR:
+ * - Duración mínima/máxima: Busca DEFAULT_DURATION_MIN y los límites
+ * - Fichas por minuto: Modifica la fórmula en completeSession()
+ * - Multiplicadores: Cambia DIFFICULTY_MULTIPLIER en types.ts
+ * =============================================================================
+ */
 
+// -----------------------------------------------------------------------------
+// IMPORTS
+// -----------------------------------------------------------------------------
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AppState,
@@ -15,7 +55,7 @@ import {
 } from "react-native";
 import { Image } from "expo-image";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
+import * as Haptics from "expo-haptics";              // Vibración del dispositivo
 import { FontAwesome5 } from "@expo/vector-icons";
 import Animated, {
   Easing,
@@ -23,17 +63,20 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withTiming,
-} from "react-native-reanimated";
+} from "react-native-reanimated";                     // Animaciones fluidas
 
+// Componentes personalizados
 import { CasinoMascot } from "@/src/components/CasinoMascot";
 import { CoinBadge } from "@/src/components/CoinBadge";
-import { CoinShower } from "@/src/components/CoinShower";
+import { CoinShower } from "@/src/components/CoinShower";      // Lluvia de monedas
 import { MarqueeLights } from "@/src/components/MarqueeLights";
 import { PaperBackground } from "@/src/components/PaperBackground";
 import { SignTitle } from "@/src/components/SignTitle";
 import { SunburstRays } from "@/src/components/SunburstRays";
 import { VintageButton } from "@/src/components/VintageButton";
 import { VintageCard } from "@/src/components/VintageCard";
+
+// Notificaciones push
 import {
   clearSessionNotifications,
   requestNotificationPermission,
@@ -41,12 +84,16 @@ import {
   showSuccessNotification,
   startSessionNotification,
 } from "@/src/hooks/notifications";
+
 import { useSounds } from "@/src/hooks/use-sounds";
+
+// Bloqueador de apps (experimental)
 import {
   isBlockerAvailable,
   startBlockingSession,
   stopBlockingSession,
 } from "@/src/hooks/use-blocker";
+
 import { useGameStore } from "@/src/store/game-store";
 import {
   DIFFICULTY_EMOJI,
@@ -56,26 +103,34 @@ import {
 } from "@/src/store/types";
 import { cartoonShadow, colors, fonts, goldBorder, inkBorder, radii } from "@/src/theme";
 
+// -----------------------------------------------------------------------------
+// TIPOS
+// -----------------------------------------------------------------------------
 type SessionState = "idle" | "running" | "paused" | "finished" | "failed";
 type TopicMode = "manual" | "roulette";
 
-const WHEEL_IMG = require("../../assets/images/roulette-wheel.png");
-const RACHA_ICON = require("../../assets/images/racha-icon.png");
-const MASCOT_ESTUDIO = require("../../assets/images/mascot-estudio.png");
+// -----------------------------------------------------------------------------
+// IMÁGENES Y ASSETS
+// -----------------------------------------------------------------------------
+const WHEEL_IMG = require("../../assets/images/roulette-wheel.png");    // Rueda de ruleta
+const RACHA_ICON = require("../../assets/images/racha-icon.png");        // Icono de racha
+const MASCOT_ESTUDIO = require("../../assets/images/mascot-estudio.png"); // Mascota estudiando
 
-// Domination level icons (clown states)
+// Iconos de nivel de dominio (payaso en diferentes estados)
 const DOMINIO_NADA = require("../../assets/images/dominio-nada.png");
 const DOMINIO_REGULAR = require("../../assets/images/dominio-regular.png");
 const DOMINIO_BIEN = require("../../assets/images/dominio-bien.png");
 const DOMINIO_CONTROLADO = require("../../assets/images/dominio-controlado.png");
 
+// Mapa de iconos por nivel de dominio
 const DOMINIO_ICONS: Record<Mastery, any> = {
-  0: DOMINIO_NADA,
-  1: DOMINIO_REGULAR,
-  2: DOMINIO_BIEN,
-  3: DOMINIO_CONTROLADO,
+  0: DOMINIO_NADA,       // Nivel 0: Nada dominado
+  1: DOMINIO_REGULAR,    // Nivel 1: Regular
+  2: DOMINIO_BIEN,       // Nivel 2: Bien
+  3: DOMINIO_CONTROLADO, // Nivel 3: Controlado
 };
 
+// Etiquetas de texto para cada nivel
 const DOMINIO_LABELS: Record<Mastery, string> = {
   0: "Sin dominar",
   1: "Regular",

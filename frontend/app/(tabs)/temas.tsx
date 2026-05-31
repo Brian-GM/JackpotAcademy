@@ -1,6 +1,47 @@
-// TEMAS — Topic catalog. Smart priority view + categories + full CRUD + study history.
-// (No roulette wheel here — the spin moved to Estudio screen.)
+/**
+ * =============================================================================
+ * temas.tsx - PANTALLA DE GESTIÓN DE TEMAS/MATERIAS
+ * =============================================================================
+ * 
+ * Permite al usuario gestionar sus temas de estudio con todas las operaciones
+ * CRUD (Crear, Leer, Actualizar, Eliminar).
+ * 
+ * SECCIONES DE LA PANTALLA:
+ * 1. Header con fichas y racha
+ * 2. Tabs: "Lista de temas" / "Historial"
+ * 3. Lista de temas organizados por categoría
+ * 4. Modal de edición/creación de temas
+ * 
+ * FUNCIONALIDADES:
+ * - Ver todos los temas organizados por categoría
+ * - Añadir nuevos temas con nombre, categoría, dificultad y nivel de dominio
+ * - Editar temas existentes
+ * - Eliminar temas
+ * - Activar/desactivar temas para estudio
+ * - Cambiar nivel de dominio rápidamente
+ * - Ver historial de estudio
+ * 
+ * NIVELES DE DOMINIO (Mastery):
+ * - 0: Nada (no dominas el tema)
+ * - 1: Regular (conocimiento básico)
+ * - 2: Bien (buen conocimiento)
+ * - 3: Controlado (dominio total)
+ * 
+ * DIFICULTAD:
+ * - 1: Fácil (da menos fichas)
+ * - 2: Normal
+ * - 3: Difícil (da más fichas)
+ * 
+ * PARA MODIFICAR:
+ * - Añadir campo a tema: Modifica emptyTopic() y el formulario en el modal
+ * - Cambiar iconos de dominio: Modifica MASTERY_ICONS o MASTERY_THEME_ICONS
+ * - Cambiar colores por dominio: Modifica MASTERY_COLOR en types.ts
+ * =============================================================================
+ */
 
+// -----------------------------------------------------------------------------
+// IMPORTS - Librerías y componentes necesarios
+// -----------------------------------------------------------------------------
 import { useEffect, useMemo, useState } from "react";
 import {
   Image,
@@ -13,9 +54,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import * as Haptics from "expo-haptics";
+import * as Haptics from "expo-haptics";        // Vibración del dispositivo
 import { FontAwesome5 } from "@expo/vector-icons";
 
+// Componentes personalizados
 import { CoinBadge } from "@/src/components/CoinBadge";
 import { PaperBackground } from "@/src/components/PaperBackground";
 import { SignTitle } from "@/src/components/SignTitle";
@@ -34,7 +76,10 @@ import {
 } from "@/src/store/types";
 import { cartoonShadow, colors, fonts, goldBorder, inkBorder, radii } from "@/src/theme";
 
-// Mastery icons - clown states (for compact view)
+// -----------------------------------------------------------------------------
+// ICONOS DE NIVEL DE DOMINIO
+// -----------------------------------------------------------------------------
+// Iconos pequeños para la vista compacta (lista de temas)
 const MASTERY_ICONS: Record<Mastery, any> = {
   0: require("../../assets/images/dominio-nada.png"),      // Nada → Payaso triste
   1: require("../../assets/images/dominio-regular.png"),   // Regular → Payaso neutral
@@ -42,7 +87,7 @@ const MASTERY_ICONS: Record<Mastery, any> = {
   3: require("../../assets/images/dominio-controlado.png"), // Controlado → Payaso brillante
 };
 
-// Mastery icons - new theme icons (for edit modal)
+// Iconos grandes para el modal de edición
 const MASTERY_THEME_ICONS: Record<Mastery, any> = {
   0: require("../../assets/new-assets/TemaNadaControladoIcom.png"),
   1: require("../../assets/new-assets/TemaRegularIcon.png"),
