@@ -112,7 +112,7 @@ type TopicMode = "manual" | "roulette";
 // -----------------------------------------------------------------------------
 // IMÁGENES Y ASSETS
 // -----------------------------------------------------------------------------
-const WHEEL_IMG = require("../../assets/images/roulette-wheel.png");    // Rueda de ruleta
+const WHEEL_IMG = require("../../assets/images/ruleta-elegir.png");    // Rueda de ruleta
 const RACHA_ICON = require("../../assets/images/racha-icon.png");        // Icono de racha
 const MASCOT_ESTUDIO = require("../../assets/images/mascot-estudio.png"); // Mascota estudiando
 

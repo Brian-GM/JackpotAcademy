@@ -576,9 +576,20 @@ function TopicEditModal({
             </Text>
             <TextInput
               value={String(draft.weight)}
-              onChangeText={(t) =>
-                setDraft({ ...draft, weight: Math.max(0.1, Math.min(5, parseFloat(t) || 0.1)) })
-              }
+              onChangeText={(t) => {
+                // Permitir escribir libremente (incluye valores parciales como "2." o "0.5")
+                // Solo validar caracteres permitidos (números y punto decimal)
+                const cleaned = t.replace(/[^0-9.]/g, '');
+                // Evitar múltiples puntos
+                const parts = cleaned.split('.');
+                const sanitized = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
+                setDraft({ ...draft, weight: sanitized as any });
+              }}
+              onBlur={() => {
+                // Al perder el foco, validar y aplicar límites
+                const num = parseFloat(String(draft.weight)) || 0.1;
+                setDraft({ ...draft, weight: Math.max(0.1, Math.min(5, num)) });
+              }}
               keyboardType="decimal-pad"
               style={styles.input}
               testID="topic-weight-input"
@@ -925,7 +936,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   masteryOptionChip: {
-    width: 72,
+    width: 78,
     alignItems: "center",
     justifyContent: "center",
     gap: 4,
@@ -937,8 +948,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgPanelLight,
   },
   masteryOptionIcon: {
-    width: 48,
-    height: 48,
+    width: 56,
+    height: 56,
   },
   masteryOptionLabel: { 
     fontFamily: fonts.subheading, 
