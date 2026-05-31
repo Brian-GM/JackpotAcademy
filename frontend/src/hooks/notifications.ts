@@ -117,13 +117,14 @@ export async function clearSessionNotifications(): Promise<void> {
   }
 }
 
-export async function showFailNotification(reason: string): Promise<void> {
+export async function showFailNotification(reason: string, coinsLost?: number): Promise<void> {
   await ensureConfig();
   try {
+    const lostText = coinsLost ? ` Has perdido ${coinsLost} fichas.` : "";
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: "💀 CASINO CERRADO",
-        body: `Has fallado tu sesión: ${reason}`,
+        title: "💀 SESIÓN FALLIDA",
+        body: `${reason}.${lostText}`,
         sound: "default",
         ...(Platform.OS === "android" ? { channelId: "pomodoro" } : {}),
       },

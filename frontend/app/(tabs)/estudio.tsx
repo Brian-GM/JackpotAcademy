@@ -215,20 +215,21 @@ export default function EstudioScreen() {
     (reason: string) => {
       cleanupTimers();
       const betValue = highRisk ? Math.max(0, parseInt(bet, 10) || 0) : 0;
+      const coinsLost = state.settings.failPenaltyCoins + betValue;
       failStudySession({ highRiskBet: betValue });
       setSessionState("failed");
       setResultModal({ kind: "fail", reason });
       play("fail");
       clearSessionNotifications();
       stopBlockingSession();
-      showFailNotification(reason);
+      showFailNotification(reason, coinsLost);
       try {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       } catch {
         // best-effort
       }
     },
-    [bet, cleanupTimers, failStudySession, highRisk, play],
+    [bet, cleanupTimers, failStudySession, highRisk, play, state.settings.failPenaltyCoins],
   );
 
   const handleComplete = useCallback(() => {
@@ -788,7 +789,7 @@ export default function EstudioScreen() {
           {!isLive && (
             <Text style={styles.warning}>
               ⚠️ Si abandonas o sales de la app durante más de {state.settings.appBlurFailSec}s,
-              la sesión falla y el casino cierra {state.settings.casinoClosedMin} min.
+              la sesión falla y perderás {state.settings.failPenaltyCoins} fichas.
             </Text>
           )}
         </ScrollView>
@@ -825,12 +826,12 @@ export default function EstudioScreen() {
               </>
             ) : (
               <>
-                <Text style={[styles.modalTitle, { color: colors.cream }]}>CASINO CERRADO</Text>
+                <Text style={[styles.modalTitle, { color: colors.cream }]}>SESIÓN FALLIDA</Text>
                 <Text style={[styles.modalBody, { color: colors.cream }]}>
                   {resultModal?.reason}
                 </Text>
                 <Text style={[styles.modalSubBody, { color: colors.cream }]}>
-                  Racha perdida. Cooldown {state.settings.casinoClosedMin}m activo.
+                  Has perdido {state.settings.failPenaltyCoins} fichas. ¡Inténtalo de nuevo!
                 </Text>
               </>
             )}

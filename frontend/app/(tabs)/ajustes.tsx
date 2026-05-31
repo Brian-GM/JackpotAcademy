@@ -55,7 +55,6 @@ const ECONOMY_FIELDS: FieldConfig[] = [
     isFloat: true,
   },
   { key: "failPenaltyCoins", label: "Penalización por fallo", help: "Fichas perdidas" },
-  { key: "casinoClosedMin", label: "Cierre casino tras fallo (min)", help: "Duración del castigo" },
   { key: "maxPauses", label: "Pausas máximas", help: "Antes de fallar" },
   { key: "highRiskMultiplier", label: "Multiplicador alto riesgo", help: "Ganancias × N si completas" },
   { key: "appBlurFailSec", label: "Salir de app (seg)", help: "Tolerancia antes de fallar" },
