@@ -91,7 +91,6 @@ export default function TabLayout() {
         tabBarActiveTintColor: colors.antiqueGold,   // Color cuando está activo
         tabBarInactiveTintColor: colors.cream,       // Color cuando está inactivo
         tabBarShowLabel: true,                 // Muestra las etiquetas de texto
-        tabBarScrollEnabled: true,             // Permite scroll horizontal si hay muchas pestañas
         tabBarItemStyle: styles.tabBarItem,    // Estilo de cada item individual
       }}
     >

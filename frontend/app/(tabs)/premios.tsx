@@ -242,7 +242,9 @@ function InventoryItem({
         <View style={[styles.iconBubble, { borderColor: rarityColor(reward.rarity) }]}>
           <Text style={styles.iconText}>{reward.icon}</Text>
           {onCooldown && (
-            <Image source={LOCKED} style={styles.lockedOverlay} pointerEvents="none" />
+            <View style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none' }}>
+              <Image source={LOCKED} style={styles.lockedOverlay} />
+            </View>
           )}
           {(reward.earnedCount ?? 0) > 1 && (
             <View style={styles.stackBadge}>

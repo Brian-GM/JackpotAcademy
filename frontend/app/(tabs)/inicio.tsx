@@ -83,7 +83,7 @@ export default function InicioScreen() {
   // FUNCIÓN DE NAVEGACIÓN
   // ---------------------------------------------------------------------------
   // Navega a una pantalla reproduciendo el sonido de "lever" (palanca)
-  const goTo = (path: "/(tabs)/estudio" | "/(tabs)/casino" | "/(tabs)/ruleta" | "/(tabs)/premios" | "/(tabs)/ajustes" | "/(tabs)/temas") => {
+  const goTo = (path: "/(tabs)/estudio" | "/(tabs)/casino" | "/(tabs)/premios" | "/(tabs)/ajustes" | "/(tabs)/temas") => {
     play("lever");      // Reproduce sonido de palanca
     router.push(path);  // Navega a la ruta especificada
   };

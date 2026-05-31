@@ -57,6 +57,9 @@ type StoreApi = {
   deleteTopic: (id: string) => void;
   toggleTopic: (id: string) => void;
   markTopicStudied: (id: string) => void;
+  setTopicMastery: (id: string, mastery: Mastery) => void;
+  toggleCategory: (category: string) => void;
+  computeTopicPriority: (topic: Topic) => number;
   // settings
   updateSettings: (patch: Partial<Settings>) => void;
   // blocker
@@ -85,7 +88,7 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
           const parsed = JSON.parse(raw) as GameState;
           // ensure topics have difficulty (legacy users)
           const topics = (parsed.topics?.length ? parsed.topics : DEFAULT_STATE.topics).map(
-            (t) => ({ difficulty: t.difficulty ?? 2, ...t }) as Topic,
+            (t) => ({ ...t, difficulty: t.difficulty ?? 2 }) as Topic,
           );
           setState({
             ...DEFAULT_STATE,
