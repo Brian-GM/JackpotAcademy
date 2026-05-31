@@ -832,7 +832,7 @@ function RouletteSection({
   spinning: boolean;
   selectedTopic: { id: string; name: string; difficulty: number } | null | undefined;
   onSpin: () => void;
-  wheelAnim: { transform: { rotate: string }[] };
+  wheelAnim: any;
 }) {
   return (
     <View style={styles.rouletteWrap}>

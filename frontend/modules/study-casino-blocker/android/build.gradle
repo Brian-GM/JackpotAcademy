@@ -12,17 +12,15 @@ useExpoPublishing()
 
 android {
   namespace 'expo.modules.studycasinoblocker'
+  compileSdk 36
   defaultConfig {
+    minSdk 24
+    targetSdk 36
     versionCode 1
     versionName "0.1.0"
   }
   lintOptions {
     abortOnError false
-  }
-  publishing {
-    singleVariant("release") {
-      withSourcesJar()
-    }
   }
 }
 

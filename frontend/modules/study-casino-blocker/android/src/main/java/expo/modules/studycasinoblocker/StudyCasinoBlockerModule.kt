@@ -21,7 +21,7 @@ class StudyCasinoBlockerModule : Module() {
         }
 
         Function("openAccessibilitySettings") {
-            val ctx = appContext.reactContext ?: return@Function
+            val ctx = appContext.reactContext ?: return@Function Unit
             val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
@@ -30,26 +30,31 @@ class StudyCasinoBlockerModule : Module() {
             } catch (_: Throwable) {
                 // ignore — best effort
             }
+            Unit
         }
 
         Function("setBlocklist") { packages: List<String> ->
-            val ctx = appContext.reactContext ?: return@Function
+            val ctx = appContext.reactContext ?: return@Function Unit
             BlocklistStore.setBlocklist(ctx, packages)
+            Unit
         }
 
         Function("setAllowlist") { packages: List<String> ->
-            val ctx = appContext.reactContext ?: return@Function
+            val ctx = appContext.reactContext ?: return@Function Unit
             BlocklistStore.setAllowlist(ctx, packages)
+            Unit
         }
 
         Function("setStrictMode") { strict: Boolean ->
-            val ctx = appContext.reactContext ?: return@Function
+            val ctx = appContext.reactContext ?: return@Function Unit
             BlocklistStore.setStrictMode(ctx, strict)
+            Unit
         }
 
         Function("setActive") { active: Boolean ->
-            val ctx = appContext.reactContext ?: return@Function
+            val ctx = appContext.reactContext ?: return@Function Unit
             BlocklistStore.setActive(ctx, active)
+            Unit
         }
 
         Function("isActive") {

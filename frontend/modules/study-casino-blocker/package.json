@@ -2,10 +2,10 @@
   "name": "study-casino-blocker",
   "version": "0.1.0",
   "description": "Native Android Accessibility Service that blocks distracting apps during Pomodoro sessions",
-  "main": "build/index.js",
-  "types": "build/index.d.ts",
+  "main": "index.ts",
+  "types": "index.ts",
   "files": [
-    "build",
+    "index.ts",
     "android",
     "expo-module.config.json"
   ],
