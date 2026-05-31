@@ -2,28 +2,20 @@
  * =============================================================================
  * _layout.tsx - CONFIGURACIÓN DE LA BARRA DE NAVEGACIÓN (TABS) CON SWIPE
  * =============================================================================
- * 
- * Este archivo controla la barra de navegación inferior de la aplicación.
- * Define las pestañas (tabs) y sus iconos personalizados.
- * Permite navegar entre pestañas deslizando la pantalla.
- * 
- * =============================================================================
  */
 
-import React, { useRef, useCallback, useState } from "react";
-import { Image, StyleSheet, Text, View, TouchableOpacity, Dimensions } from "react-native";
-import PagerView from "react-native-pager-view";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import React, { useRef, useCallback } from "react";
+import { Tabs, usePathname, useRouter } from "expo-router";
+import { Image, StyleSheet, Text, View, Platform } from "react-native";
+import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
+import Animated, { 
+  useSharedValue, 
+  useAnimatedStyle, 
+  withSpring,
+  runOnJS 
+} from "react-native-reanimated";
 
 import { cartoonShadow, colors, fonts } from "@/src/theme";
-
-// Importar las pantallas directamente
-import InicioScreen from "./inicio";
-import EstudioScreen from "./estudio";
-import TemasScreen from "./temas";
-import CasinoScreen from "./casino";
-import PremiosScreen from "./premios";
-import AjustesScreen from "./ajustes";
 
 // -----------------------------------------------------------------------------
 // ICONOS DE NAVEGACIÓN
@@ -36,16 +28,9 @@ const NAV_PREMIOS = require("../../assets/images/nav-premios.png");
 const NAV_AJUSTES = require("../../assets/images/nav-ajustes.png");
 
 // -----------------------------------------------------------------------------
-// CONFIGURACIÓN DE PESTAÑAS
+// ORDEN DE TABS PARA SWIPE
 // -----------------------------------------------------------------------------
-const TABS = [
-  { key: "inicio", label: "Inicio", icon: NAV_HOME, Component: InicioScreen },
-  { key: "estudio", label: "Estudio", icon: NAV_ESTUDIO, Component: EstudioScreen },
-  { key: "temas", label: "Temas", icon: NAV_TEMAS, Component: TemasScreen },
-  { key: "casino", label: "Casino", icon: NAV_CASINO, Component: CasinoScreen },
-  { key: "premios", label: "Premios", icon: NAV_PREMIOS, Component: PremiosScreen },
-  { key: "ajustes", label: "Ajustes", icon: NAV_AJUSTES, Component: AjustesScreen },
-];
+const TAB_ORDER = ["inicio", "estudio", "temas", "casino", "premios", "ajustes"];
 
 // -----------------------------------------------------------------------------
 // TIPOS
@@ -85,55 +70,118 @@ function TabLabel({ label, focused }: { label: string; focused: boolean }) {
 }
 
 // -----------------------------------------------------------------------------
-// COMPONENTE PRINCIPAL: TabLayout con Swipe
+// COMPONENTE PRINCIPAL: TabLayout con Swipe Gesture
 // -----------------------------------------------------------------------------
 export default function TabLayout() {
-  const pagerRef = useRef<PagerView>(null);
-  const [currentPage, setCurrentPage] = useState(0);
-  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const pathname = usePathname();
+  const translateX = useSharedValue(0);
+  
+  // Obtener índice actual basado en la ruta
+  const getCurrentIndex = useCallback(() => {
+    const currentTab = pathname.replace("/(tabs)/", "").replace("/", "") || "inicio";
+    const index = TAB_ORDER.indexOf(currentTab);
+    return index >= 0 ? index : 0;
+  }, [pathname]);
 
-  const onPageSelected = useCallback((e: any) => {
-    setCurrentPage(e.nativeEvent.position);
-  }, []);
+  // Navegar a tab por índice
+  const navigateToIndex = useCallback((index: number) => {
+    if (index >= 0 && index < TAB_ORDER.length) {
+      router.replace(`/(tabs)/${TAB_ORDER[index]}` as any);
+    }
+  }, [router]);
 
-  const goToPage = useCallback((index: number) => {
-    pagerRef.current?.setPage(index);
-    setCurrentPage(index);
-  }, []);
+  // Configurar gesto de swipe
+  const panGesture = Gesture.Pan()
+    .activeOffsetX([-20, 20])
+    .failOffsetY([-10, 10])
+    .onUpdate((event) => {
+      translateX.value = event.translationX * 0.3;
+    })
+    .onEnd((event) => {
+      const currentIndex = getCurrentIndex();
+      const threshold = 50;
+      
+      if (event.translationX > threshold && currentIndex > 0) {
+        // Swipe derecha - ir a tab anterior
+        runOnJS(navigateToIndex)(currentIndex - 1);
+      } else if (event.translationX < -threshold && currentIndex < TAB_ORDER.length - 1) {
+        // Swipe izquierda - ir a tab siguiente
+        runOnJS(navigateToIndex)(currentIndex + 1);
+      }
+      
+      translateX.value = withSpring(0, { damping: 20, stiffness: 200 });
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
 
   return (
-    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      {/* PagerView para swipe entre pantallas */}
-      <PagerView
-        ref={pagerRef}
-        style={styles.pagerView}
-        initialPage={0}
-        onPageSelected={onPageSelected}
-        overdrag={true}
-        offscreenPageLimit={1}
-      >
-        {TABS.map((tab, index) => (
-          <View key={tab.key} style={styles.page}>
-            <tab.Component />
-          </View>
-        ))}
-      </PagerView>
-
-      {/* Barra de navegación inferior personalizada */}
-      <View style={styles.tabBar}>
-        {TABS.map((tab, index) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.tabBarItem}
-            onPress={() => goToPage(index)}
-            activeOpacity={0.7}
+    <GestureHandlerRootView style={styles.container}>
+      <GestureDetector gesture={panGesture}>
+        <Animated.View style={[styles.content, animatedStyle]}>
+          <Tabs
+            screenOptions={{
+              headerShown: false,
+              tabBarStyle: styles.tabBar,
+              tabBarActiveTintColor: colors.antiqueGold,
+              tabBarInactiveTintColor: colors.cream,
+              tabBarShowLabel: true,
+              tabBarItemStyle: styles.tabBarItem,
+            }}
           >
-            <TabIcon source={tab.icon} focused={currentPage === index} />
-            <TabLabel label={tab.label} focused={currentPage === index} />
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
+            <Tabs.Screen
+              name="inicio"
+              options={{
+                tabBarLabel: ({ focused }) => <TabLabel label="Inicio" focused={focused} />,
+                tabBarIcon: ({ focused }) => <TabIcon source={NAV_HOME} focused={focused} />,
+              }}
+            />
+            
+            <Tabs.Screen
+              name="estudio"
+              options={{
+                tabBarLabel: ({ focused }) => <TabLabel label="Estudio" focused={focused} />,
+                tabBarIcon: ({ focused }) => <TabIcon source={NAV_ESTUDIO} focused={focused} />,
+              }}
+            />
+            
+            <Tabs.Screen
+              name="temas"
+              options={{
+                tabBarLabel: ({ focused }) => <TabLabel label="Temas" focused={focused} />,
+                tabBarIcon: ({ focused }) => <TabIcon source={NAV_TEMAS} focused={focused} />,
+              }}
+            />
+            
+            <Tabs.Screen
+              name="casino"
+              options={{
+                tabBarLabel: ({ focused }) => <TabLabel label="Casino" focused={focused} />,
+                tabBarIcon: ({ focused }) => <TabIcon source={NAV_CASINO} focused={focused} />,
+              }}
+            />
+            
+            <Tabs.Screen
+              name="premios"
+              options={{
+                tabBarLabel: ({ focused }) => <TabLabel label="Premios" focused={focused} />,
+                tabBarIcon: ({ focused }) => <TabIcon source={NAV_PREMIOS} focused={focused} />,
+              }}
+            />
+            
+            <Tabs.Screen
+              name="ajustes"
+              options={{
+                tabBarLabel: ({ focused }) => <TabLabel label="Ajustes" focused={focused} />,
+                tabBarIcon: ({ focused }) => <TabIcon source={NAV_AJUSTES} focused={focused} />,
+              }}
+            />
+          </Tabs>
+        </Animated.View>
+      </GestureDetector>
+    </GestureHandlerRootView>
   );
 }
 
@@ -143,16 +191,11 @@ export default function TabLayout() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.bgDark,
   },
-  pagerView: {
-    flex: 1,
-  },
-  page: {
+  content: {
     flex: 1,
   },
   tabBar: {
-    flexDirection: "row",
     backgroundColor: colors.bgDarker,
     height: 80,
     paddingTop: 4,
@@ -162,10 +205,8 @@ const styles = StyleSheet.create({
     borderTopColor: colors.antiqueGold,
   },
   tabBarItem: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
     minWidth: 50,
+    paddingHorizontal: 0,
   },
   iconWrap: {
     width: 44,
