@@ -121,8 +121,8 @@ class BlockedAppOverlayService : Service() {
             else
                 @Suppress("DEPRECATION")
                 WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                    WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
+            // FLAG_NOT_FOCUSABLE removed to allow button clicks
+            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                     WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
             PixelFormat.TRANSLUCENT
         ).apply {
@@ -178,18 +178,33 @@ class BlockedAppOverlayService : Service() {
             paint.isFakeBoldText = true
         }
 
+        // Botón para cerrar inmediatamente sin esperar
+        val closeButton = TextView(this).apply {
+            text = "CERRAR AHORA"
+            textSize = 18f
+            setTextColor(Color.WHITE)
+            gravity = Gravity.CENTER
+            setPadding(60, 30, 60, 30)
+            setBackgroundColor(Color.parseColor("#D32F2F"))
+            paint.isFakeBoldText = true
+            setOnClickListener {
+                returnToApp()
+            }
+        }
+
         val subText = TextView(this).apply {
             text = "¡Vuelve a estudiar! 📚"
             textSize = 16f
             setTextColor(Color.parseColor("#AAAAAA"))
             gravity = Gravity.CENTER
-            setPadding(0, 20, 0, 0)
+            setPadding(0, 30, 0, 0)
         }
 
         layout.addView(warningIcon)
         layout.addView(title)
         layout.addView(message)
         layout.addView(countdownText)
+        layout.addView(closeButton)
         layout.addView(subText)
 
         return layout

@@ -205,14 +205,14 @@ export function GameStoreProvider({ children }: { children: ReactNode }) {
     ({ highRiskBet = 0 }) => {
       let coinsLost = 0;
       setState((s) => {
+        // Penalización: quitar fichas pero NO cerrar el casino
         const penalty = s.settings.failPenaltyCoins + highRiskBet;
-        const closeUntil = Date.now() + s.settings.casinoClosedMin * 60 * 1000;
-        coinsLost = Math.min(penalty, s.coins) + highRiskBet;
+        coinsLost = Math.min(penalty, s.coins);
         return {
           ...s,
-          coins: Math.max(0, s.coins - s.settings.failPenaltyCoins),
+          coins: Math.max(0, s.coins - penalty),
           streak: 0,
-          casinoClosedUntil: closeUntil,
+          // Ya no cerramos el casino: casinoClosedUntil permanece igual
           stats: { ...s.stats, sessionsFailed: s.stats.sessionsFailed + 1 },
         };
       });
