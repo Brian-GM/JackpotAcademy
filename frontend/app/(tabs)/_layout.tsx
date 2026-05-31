@@ -34,8 +34,8 @@ import { cartoonShadow, colors, fonts, goldBorder } from "@/src/theme";  // Tema
 // NOTA: Para cambiar un icono, reemplaza el archivo PNG correspondiente
 // en la carpeta assets/images/ o cambia la ruta aquí
 const NAV_HOME = require("../../assets/images/nav-home.png");       // Icono de Inicio
-const NAV_ESTUDIO = require("../../assets/images/nav-estudio.png"); // Icono de Estudio
-const NAV_TEMAS = require("../../assets/images/nav-temas.png");     // Icono de Temas
+const NAV_ESTUDIO = require("../../assets/images/nav-icon-estudio.png"); // Icono de Estudio
+const NAV_TEMAS = require("../../assets/images/nav-icon-temas.png");     // Icono de Temas
 const NAV_CASINO = require("../../assets/images/nav-casino.png");   // Icono de Casino
 const NAV_PREMIOS = require("../../assets/images/nav-premios.png"); // Icono de Premios
 const NAV_AJUSTES = require("../../assets/images/nav-ajustes.png"); // Icono de Ajustes
