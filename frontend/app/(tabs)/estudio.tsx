@@ -596,7 +596,9 @@ export default function EstudioScreen() {
               </Text>
             )}
             <View style={styles.gaugeOuter}>
-              <View style={[styles.gaugeFill, { width: `${Math.min(100, progress * 100)}%` }]} />
+              <View style={styles.gaugeTrack}>
+                <View style={[styles.gaugeFill, { width: `${Math.max(2, Math.min(100, progress * 100))}%` }]} />
+              </View>
               <View style={styles.gaugeShine} pointerEvents="none" />
             </View>
             <View style={styles.metaRow}>
@@ -1047,30 +1049,36 @@ const styles = StyleSheet.create({
   },
   gaugeOuter: {
     width: "100%",
-    height: 22,
-    ...inkBorder(3),
-    backgroundColor: colors.paperPrimary,
-    borderRadius: 11,
+    height: 24,
+    backgroundColor: colors.bgDark,
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: colors.ink,
     overflow: "hidden",
-    marginTop: 8,
-    position: "relative",
+    marginTop: 10,
+    marginBottom: 4,
+  },
+  gaugeTrack: {
+    flex: 1,
+    backgroundColor: colors.paperPrimary,
+    borderRadius: 9,
+    overflow: "hidden",
+    margin: 2,
   },
   gaugeFill: { 
-    position: "absolute",
-    left: 0,
-    top: 0,
-    bottom: 0,
+    height: "100%",
     backgroundColor: colors.vintageRed,
-    borderRadius: 8,
+    borderRadius: 7,
+    minWidth: 4,
   },
   gaugeShine: {
     position: "absolute",
-    top: 3,
-    left: 3,
-    right: 3,
-    height: 5,
-    backgroundColor: "rgba(255,255,255,0.3)",
-    borderRadius: 3,
+    top: 5,
+    left: 6,
+    right: 6,
+    height: 4,
+    backgroundColor: "rgba(255,255,255,0.35)",
+    borderRadius: 2,
   },
   metaRow: {
     flexDirection: "row",
