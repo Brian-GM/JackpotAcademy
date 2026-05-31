@@ -5,7 +5,7 @@
  * 
  * Este archivo controla la barra de navegación inferior de la aplicación.
  * Define las pestañas (tabs) y sus iconos personalizados.
- * El soporte para swipe está integrado en PaperBackground.
+ * SwipeZone detecta gestos horizontales desde los bordes para navegar entre tabs.
  * 
  * =============================================================================
  */
@@ -13,6 +13,8 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import { Image, StyleSheet, Text, View } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SwipeZone } from "../../src/components/SwipeZone";
 
 import { cartoonShadow, colors, fonts } from "@/src/theme";
 
@@ -68,16 +70,19 @@ function TabLabel({ label, focused }: { label: string; focused: boolean }) {
 // -----------------------------------------------------------------------------
 export default function TabLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarStyle: styles.tabBar,
-        tabBarActiveTintColor: colors.antiqueGold,
-        tabBarInactiveTintColor: colors.cream,
-        tabBarShowLabel: true,
-        tabBarItemStyle: styles.tabBarItem,
-      }}
-    >
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SwipeZone>
+        <Tabs
+          screenOptions={{
+            headerShown: false,
+            tabBarStyle: styles.tabBar,
+            tabBarActiveTintColor: colors.antiqueGold,
+            tabBarInactiveTintColor: colors.cream,
+            tabBarShowLabel: true,
+            tabBarItemStyle: styles.tabBarItem,
+            sceneStyle: { flex: 1 },
+          }}
+        >
       <Tabs.Screen
         name="inicio"
         options={{
@@ -125,7 +130,9 @@ export default function TabLayout() {
           tabBarIcon: ({ focused }) => <TabIcon source={NAV_AJUSTES} focused={focused} />,
         }}
       />
-    </Tabs>
+        </Tabs>
+      </SwipeZone>
+    </GestureHandlerRootView>
   );
 }
 
