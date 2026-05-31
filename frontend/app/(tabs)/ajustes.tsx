@@ -103,7 +103,7 @@ export default function AjustesScreen() {
               testID="toggle-sounds"
             />
             <View style={styles.volumeRow}>
-              <Text style={styles.fieldLabel}>Volumen</Text>
+              <Text style={styles.fieldLabel}>Volumen efectos</Text>
               <View style={styles.volumeBtns}>
                 {[0.2, 0.4, 0.6, 0.8, 1].map((v) => (
                   <Pressable
@@ -119,6 +119,43 @@ export default function AjustesScreen() {
                       style={[
                         styles.volChipText,
                         Math.abs(state.settings.soundsVolume - v) < 0.05 && {
+                          color: colors.paperHighlight,
+                        },
+                      ]}
+                    >
+                      {Math.round(v * 100)}%
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
+            {/* Música de fondo */}
+            <View style={styles.divider} />
+            <ToggleRow
+              label="Música de fondo"
+              help="Melodía ambiente mientras usas la app"
+              value={state.settings.musicEnabled ?? true}
+              onToggle={() => updateSettings({ musicEnabled: !(state.settings.musicEnabled ?? true) })}
+              testID="toggle-music"
+            />
+            <View style={styles.volumeRow}>
+              <Text style={styles.fieldLabel}>Volumen música</Text>
+              <View style={styles.volumeBtns}>
+                {[0.1, 0.2, 0.3, 0.5, 0.7].map((v) => (
+                  <Pressable
+                    key={v}
+                    onPress={() => updateSettings({ musicVolume: v })}
+                    style={[
+                      styles.volChip,
+                      Math.abs((state.settings.musicVolume ?? 0.3) - v) < 0.05 && styles.volChipActive,
+                    ]}
+                    testID={`music-vol-${Math.round(v * 100)}`}
+                  >
+                    <Text
+                      style={[
+                        styles.volChipText,
+                        Math.abs((state.settings.musicVolume ?? 0.3) - v) < 0.05 && {
                           color: colors.paperHighlight,
                         },
                       ]}
@@ -676,6 +713,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: 11,
     marginTop: 6,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: "rgba(44,30,22,0.15)",
+    marginVertical: 12,
   },
   confirmBackdrop: {
     flex: 1,

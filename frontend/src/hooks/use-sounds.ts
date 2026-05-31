@@ -70,6 +70,23 @@ function getPlayer(name: SoundName): AudioPlayer | null {
   }
 }
 
+// Precargar sonidos frecuentes para evitar delay en la primera reproducción
+const PRELOAD_SOUNDS: SoundName[] = ["buttonTap", "coin", "bell", "click"];
+let preloaded = false;
+
+async function preloadSounds() {
+  if (preloaded) return;
+  preloaded = true;
+  await ensureMixer();
+  for (const name of PRELOAD_SOUNDS) {
+    try {
+      getPlayer(name);
+    } catch {
+      // ignore
+    }
+  }
+}
+
 export function useSounds() {
   const { state } = useGameStore();
   const enabled = state.settings.soundsEnabled ?? true;
@@ -80,7 +97,7 @@ export function useSounds() {
   volumeRef.current = volume;
 
   useEffect(() => {
-    ensureMixer();
+    preloadSounds();
   }, []);
 
   const play = useCallback((name: SoundName, opts?: { volume?: number }) => {

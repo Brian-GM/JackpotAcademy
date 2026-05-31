@@ -104,6 +104,8 @@ export type Settings = {
   // Audio
   soundsEnabled: boolean;
   soundsVolume: number; // 0..1
+  musicEnabled: boolean;
+  musicVolume: number; // 0..1 - volumen de la música de fondo
   // Notifications
   notificationsEnabled: boolean;
   endSessionSound: boolean;
@@ -157,6 +159,8 @@ export const DEFAULT_SETTINGS: Settings = {
   goldBoxCost: 100,
   soundsEnabled: true,
   soundsVolume: 0.7,
+  musicEnabled: true,
+  musicVolume: 0.3,
   notificationsEnabled: true,
   endSessionSound: true,
   appBlockerEnabled: false,

@@ -6,12 +6,26 @@ import { StatusBar } from "expo-status-bar";
 import { useIconFonts } from "@/src/hooks/use-icon-fonts";
 import { useVintageFonts } from "@/src/hooks/use-vintage-fonts";
 import { GameStoreProvider } from "@/src/store/game-store";
+import { useBackgroundMusic } from "@/src/hooks/use-background-music";
 
 // Keep the native splash visible from cold start until icon fonts register.
 // Required because @expo/vector-icons' componentDidMount fallback fires
 // Font.loadAsync against a broken vendor path if any <Icon> mounts before
 // the family is registered — which throws on Android Expo Go.
 SplashScreen.preventAutoHideAsync();
+
+// Componente interno que maneja la música de fondo
+function AppContent() {
+  // Inicializa la música de fondo automáticamente
+  useBackgroundMusic();
+  
+  return (
+    <>
+      <StatusBar style="dark" />
+      <Stack screenOptions={{ headerShown: false }} />
+    </>
+  );
+}
 
 export default function RootLayout() {
   const [iconLoaded, iconError] = useIconFonts();
@@ -31,8 +45,7 @@ export default function RootLayout() {
 
   return (
     <GameStoreProvider>
-      <StatusBar style="dark" />
-      <Stack screenOptions={{ headerShown: false }} />
+      <AppContent />
     </GameStoreProvider>
   );
 }
