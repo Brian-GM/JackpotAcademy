@@ -595,39 +595,6 @@ function TopicEditModal({
               testID="topic-weight-input"
             />
 
-            <Text style={styles.fieldLabel}>Nivel de dominio actual</Text>
-            <View style={styles.masteryOptionRow}>
-              {([0, 1, 2, 3] as Mastery[]).map((m) => (
-                <Pressable
-                  key={m}
-                  onPress={() => setDraft({ ...draft, mastery: m })}
-                  style={[
-                    styles.masteryOptionChip,
-                    (draft.mastery ?? 1) === m && {
-                      backgroundColor: MASTERY_COLOR[m],
-                      borderColor: colors.antiqueGold,
-                      borderWidth: 3,
-                    },
-                  ]}
-                  testID={`topic-mastery-${m}`}
-                >
-                  <Image 
-                    source={MASTERY_THEME_ICONS[m]} 
-                    style={styles.masteryOptionIcon} 
-                    resizeMode="contain"
-                  />
-                  <Text
-                    style={[
-                      styles.masteryOptionLabel,
-                      (draft.mastery ?? 1) === m && { color: colors.paperHighlight },
-                    ]}
-                  >
-                    {MASTERY_LABEL[m]}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
-
             <View style={styles.modalActions}>
               <VintageButton
                 label="GUARDAR"
