@@ -23,6 +23,7 @@ const SOUND_FILES = {
   win: require("../../assets/sounds/win.mp3"),
   slotsPlay: require("../../assets/sounds/tragaperras-jugar.mp3"),
   slotsLose: require("../../assets/sounds/tragaperras-perder.mp3"),
+  slotsWin: require("../../assets/sounds/tragaperras-premio.mp3"),
   
   // Sonidos de casino - cajas y ruleta
   box_open: require("../../assets/sounds/box_open.mp3"),
@@ -102,7 +103,46 @@ export function useSounds() {
     }
   }, []);
 
-  return { play };
+  const stop = useCallback((name: SoundName) => {
+    const p = getPlayer(name);
+    if (!p) return;
+    try {
+      p.pause();
+      p.seekTo(0);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  // Play a sound for a specific duration (in ms), then stop it
+  const playFor = useCallback((name: SoundName, durationMs: number, opts?: { volume?: number }) => {
+    if (!enabledRef.current) return;
+    const p = getPlayer(name);
+    if (!p) return;
+    try {
+      const v = (opts?.volume ?? 1) * volumeRef.current;
+      p.volume = v;
+      try {
+        p.seekTo(0);
+      } catch {
+        // ignore
+      }
+      p.play();
+      // Stop after duration
+      setTimeout(() => {
+        try {
+          p.pause();
+          p.seekTo(0);
+        } catch {
+          // ignore
+        }
+      }, durationMs);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  return { play, stop, playFor };
 }
 
 // Hook variant that does NOT depend on store (used in the game-store itself / early boot).

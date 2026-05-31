@@ -153,7 +153,7 @@ export default function EstudioScreen() {
     setCurrentTopic,
     computeTopicPriority,
   } = useGameStore();
-  const { play } = useSounds();
+  const { play, playFor } = useSounds();
 
   const [duration, setDuration] = useState(state.settings.pomodoroDuration);
   const [remaining, setRemaining] = useState(state.settings.pomodoroDuration * 60);
@@ -516,8 +516,7 @@ export default function EstudioScreen() {
                       }
                     }
                     setSpinning(true);
-                    play("ruletaSpin"); // Sonido de girar ruleta
-                    setTimeout(() => play("spinning", { volume: 0.5 }), 200);
+                    playFor("ruletaSpin", 3000); // Sonido sincronizado con el giro (3s)
                     try {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
                     } catch {

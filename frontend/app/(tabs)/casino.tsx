@@ -250,14 +250,13 @@ export default function CasinoScreen() {
     const cost = state.settings.slotSpinCost;
     if (!spendCoins(cost)) return;
     spinningRef.current = true;
-    play("slotsPlay"); // Sonido de botón jugar tragaperras
-    play("lever");
+    play("slotsPlay"); // Sonido de botón jugar tragaperras (inmediato)
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
     } catch {
       // ignore
     }
-    setTimeout(() => play("spinning", { volume: 0.6 }), 200);
+    setTimeout(() => play("spinning", { volume: 0.6 }), 100);
     const outcome = computeOutcome();
     setSpinning([true, true, true]);
     setReels(outcome.reels);
@@ -299,6 +298,7 @@ export default function CasinoScreen() {
       setShowResult(true);
       if (isJackpot) {
         play("jackpot");
+        play("slotsWin"); // Sonido de premio tragaperras
         setShowShower(true);
         setTimeout(() => setShowShower(false), 2400);
         try {
@@ -307,7 +307,7 @@ export default function CasinoScreen() {
           // ignore
         }
       } else if (rewardGranted) {
-        play("win");
+        play("slotsWin"); // Sonido de premio tragaperras
         setTimeout(() => play("bell", { volume: 0.5 }), 300);
         setShowShower(true);
         setTimeout(() => setShowShower(false), 1500);
