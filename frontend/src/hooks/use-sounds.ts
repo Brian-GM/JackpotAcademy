@@ -8,16 +8,32 @@ import { createAudioPlayer, AudioPlayer, setAudioModeAsync } from "expo-audio";
 import { useGameStore } from "@/src/store/game-store";
 
 const SOUND_FILES = {
+  // Sonidos de UI/botones
   coin: require("../../assets/sounds/coin.mp3"),
   bell: require("../../assets/sounds/bell.mp3"),
+  click: require("../../assets/sounds/click.mp3"),
+  tick: require("../../assets/sounds/tick.mp3"),
+  buttonTap: require("../../assets/sounds/button-tap.wav"),
+  
+  // Sonidos de casino - tragaperras
   lever: require("../../assets/sounds/lever.mp3"),
   spinning: require("../../assets/sounds/spinning.mp3"),
   jackpot: require("../../assets/sounds/jackpot.mp3"),
   fail: require("../../assets/sounds/fail.mp3"),
   win: require("../../assets/sounds/win.mp3"),
-  click: require("../../assets/sounds/click.mp3"),
-  tick: require("../../assets/sounds/tick.mp3"),
+  slotsPlay: require("../../assets/sounds/slots-play.mp3"),
+  slotsLose: require("../../assets/sounds/slots-lose.mp3"),
+  
+  // Sonidos de casino - cajas y ruleta
   box_open: require("../../assets/sounds/box_open.mp3"),
+  boxOpen: require("../../assets/sounds/box-open.wav"),
+  ruletaSpin: require("../../assets/sounds/ruleta-spin.mp3"),
+  
+  // Sonidos de estudio/pomodoro
+  pomodoroAlarm: require("../../assets/sounds/pomodoro-alarm.mp3"),
+  
+  // Música de fondo
+  backgroundMusic: require("../../assets/sounds/background-music.mp3"),
 } as const;
 
 export type SoundName = keyof typeof SOUND_FILES;

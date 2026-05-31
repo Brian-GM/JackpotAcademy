@@ -250,6 +250,7 @@ export default function CasinoScreen() {
     const cost = state.settings.slotSpinCost;
     if (!spendCoins(cost)) return;
     spinningRef.current = true;
+    play("slotsPlay"); // Sonido de botón jugar tragaperras
     play("lever");
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -311,7 +312,7 @@ export default function CasinoScreen() {
         setShowShower(true);
         setTimeout(() => setShowShower(false), 1500);
       } else {
-        play("fail", { volume: 0.5 });
+        play("slotsLose"); // Sonido de perder en tragaperras
       }
     }, 2500);
   }, [
@@ -348,7 +349,7 @@ export default function CasinoScreen() {
         recordSpin(rarity === "legendario");
         setBoxResult({ tier, rarity, reward });
         setOpeningBox(null);
-        play("box_open");
+        play("boxOpen"); // Sonido de abrir caja nuevo
         if (rarity === "legendario") {
           play("jackpot");
           setShowShower(true);
@@ -399,7 +400,7 @@ export default function CasinoScreen() {
           <View style={styles.modeRow}>
             <Pressable
               onPress={() => {
-                play("click");
+                play("buttonTap"); // Sonido de tocar botón
                 setMode("slot");
               }}
               style={[styles.modeBtn, mode === "slot" && styles.modeBtnActive]}
@@ -411,7 +412,7 @@ export default function CasinoScreen() {
             </Pressable>
             <Pressable
               onPress={() => {
-                play("click");
+                play("buttonTap"); // Sonido de tocar botón
                 setMode("boxes");
               }}
               style={[styles.modeBtn, mode === "boxes" && styles.modeBtnActive]}
@@ -520,7 +521,7 @@ export default function CasinoScreen() {
         result={slotResult}
         spinCost={state.settings.slotSpinCost}
         onClose={() => {
-          play("click");
+          play("buttonTap"); // Sonido de tocar botón
           setShowResult(false);
         }}
       />
@@ -529,7 +530,7 @@ export default function CasinoScreen() {
       <BoxResultModal
         result={boxResult}
         onClose={() => {
-          play("click");
+          play("buttonTap"); // Sonido de tocar botón
           setBoxResult(null);
         }}
       />

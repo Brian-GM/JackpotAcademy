@@ -407,7 +407,7 @@ export default function EstudioScreen() {
               <View style={styles.modeSwitchRow}>
                 <Pressable
                   onPress={() => {
-                    play("click");
+                    play("buttonTap"); // Sonido de tocar botón
                     setTopicMode("manual");
                   }}
                   style={[styles.modeBtn, topicMode === "manual" && styles.modeBtnActive]}
@@ -424,7 +424,7 @@ export default function EstudioScreen() {
                 </Pressable>
                 <Pressable
                   onPress={() => {
-                    play("click");
+                    play("buttonTap"); // Sonido de tocar botón
                     setTopicMode("roulette");
                   }}
                   style={[styles.modeBtn, topicMode === "roulette" && styles.modeBtnActive]}
@@ -458,7 +458,7 @@ export default function EstudioScreen() {
                           <Pressable
                             key={t.id}
                             onPress={() => {
-                              play("click");
+                              play("buttonTap"); // Sonido de tocar botón
                               setCurrentTopic(t.id);
                             }}
                             style={[styles.topicChip, active && styles.topicChipActive]}
@@ -516,7 +516,7 @@ export default function EstudioScreen() {
                       }
                     }
                     setSpinning(true);
-                    play("lever");
+                    play("ruletaSpin"); // Sonido de girar ruleta
                     setTimeout(() => play("spinning", { volume: 0.5 }), 200);
                     try {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
