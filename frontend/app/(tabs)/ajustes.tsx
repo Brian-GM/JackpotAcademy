@@ -256,19 +256,17 @@ export default function AjustesScreen() {
             <Text style={styles.sectionTitle}>💰 Economía y reglas</Text>
             {ECONOMY_FIELDS.map((f) => (
               <View key={f.key} style={styles.fieldRow}>
-                <View style={styles.fieldHeader}>
-                  <Text style={styles.fieldLabel} numberOfLines={1}>
-                    {f.label}
-                  </Text>
-                  <TextInput
-                    testID={`setting-${f.key}`}
-                    keyboardType={f.isFloat ? "decimal-pad" : "number-pad"}
-                    value={String(state.settings[f.key])}
-                    onChangeText={(t) => set(f.key, t, f.isFloat)}
-                    style={styles.input}
-                  />
-                </View>
+                <Text style={styles.fieldLabel}>
+                  {f.label}
+                </Text>
                 <Text style={styles.fieldHelp}>{f.help}</Text>
+                <TextInput
+                  testID={`setting-${f.key}`}
+                  keyboardType={f.isFloat ? "decimal-pad" : "number-pad"}
+                  value={String(state.settings[f.key])}
+                  onChangeText={(t) => set(f.key, t, f.isFloat)}
+                  style={styles.input}
+                />
               </View>
             ))}
           </VintageCard>
@@ -526,28 +524,31 @@ const styles = StyleSheet.create({
     color: colors.ink,
     letterSpacing: 1,
   },
-  fieldRow: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "rgba(44,30,22,0.15)" },
+  fieldRow: { 
+    paddingVertical: 12, 
+    borderBottomWidth: 1, 
+    borderBottomColor: "rgba(44,30,22,0.15)",
+    gap: 4,
+  },
   fieldHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12 },
   fieldLabel: {
     fontFamily: fonts.subheading,
-    fontSize: 13,
+    fontSize: 14,
     color: colors.ink,
     letterSpacing: 1,
-    flex: 1,
   },
-  fieldHelp: { fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft, fontStyle: "italic" },
+  fieldHelp: { fontFamily: fonts.body, fontSize: 11, color: colors.inkSoft, fontStyle: "italic", marginBottom: 6 },
   input: {
     ...inkBorder(2),
     backgroundColor: colors.paperHighlight,
     borderRadius: radii.sm,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 8,
     fontFamily: fonts.body,
     color: colors.ink,
     fontSize: 14,
-    minWidth: 90,
-    maxWidth: 200,
-    marginTop: 4,
+    width: 80,
+    textAlign: "center",
   },
   toggleRow: {
     flexDirection: "row",
