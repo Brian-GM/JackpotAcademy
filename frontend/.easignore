@@ -1,0 +1,12 @@
+# EAS Build ignore file
+node_modules/
+.expo/
+dist/
+.git/
+*.log
+*.md
+!README.md
+__tests__/
+coverage/
+.vscode/
+*.zip
